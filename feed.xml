@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:wfw="http://wellformedweb.org/CommentAPI/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Matt Greer's Site</title>
+    <title>mgreer blog</title>
     <atom:link href="http://mattgreer.org/feed.xml" rel="self" type="application/rss+xml"></atom:link>
     <link>http://mattgreer.org</link>
     <description>Me talking about software and programming</description>
@@ -106,7 +106,167 @@ Because, believe it or not, a banana is not a friend.&lt;/p&gt;
       <pubDate>Tue, 16 Oct 2012 18:00:00 -0600</pubDate>
       <guid isPermaLink="true">http://mattgreer.org/articles/dynamic-lighting-and-shadows/</guid>
       <author></author>
-      <description>&lt;p&gt;dyn lighting and shadows here&lt;/p&gt;
+      <description>&lt;p&gt;I’m working on a stealth action game where shadows will play a big role in the gameplay. Using WebGL shaders, I implemented dynamic lighting and shadows. This post is the blog post I wish existed before I started :) Gritty details on how I implemented these below…&lt;/p&gt;
+&lt;p&gt;&lt;span class=&quot;more&quot;&gt;&lt;/span&gt;&lt;/p&gt;
+&lt;iframe width=&quot;560&quot; height=&quot;315&quot; style=&quot;margin-top: 3em; margin-bottom: 3em;&quot; src=&quot;http://www.youtube.com/embed/ZMyg5erp-vk&quot; frameborder=&quot;0&quot; allowfullscreen&gt;&lt;/iframe&gt;
+
+&lt;h2 id=&quot;part-one-dynamic-lighting&quot;&gt;Part one: dynamic lighting&lt;/h2&gt;
+&lt;p&gt;I was inspired by &lt;a href=&quot;http://www.reddit.com/r/gamedev/comments/115f3y/how_to_dynamic_lighting_on_sprites/&quot;&gt;this post&lt;/a&gt; on Reddit, where aionskull used normal maps in Unity to dynamically light up his sprites. gpillow also posted in the comments how he had done &lt;a href=&quot;https://love2d.org/forums/viewtopic.php?f=5&amp;amp;t=11076&quot;&gt;something similar&lt;/a&gt; in Love2D. &lt;a href=&quot;http://mattgreer.org/articles/dynamic-lighting-and-shadows/pixel_shading.gif&quot;&gt;Here’s a large gif illustrating gpillow’s results&lt;/a&gt;. I’d just include the gif here, but it’s 8 megs. Thanks to jusksmit for making the gif.&lt;/p&gt;
+&lt;p&gt;So, what is dynamic lighting? It’s a 3D graphics technique where a light source lights up objects in the scene. It’s dynamic as the lighting effects update in real time as the light source moves around. This is pretty standard stuff in the 3D world and easy to translate into a 2D environment, assuming you can take advantage of shaders.&lt;/p&gt;
+&lt;p&gt;The key is the angle the light hits a surface indicates how much the surface lights up.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;http://mattgreer.org/articles/dynamic-lighting-and-shadows/lighting.gif&quot; alt=&quot;lighting diagram&quot;&gt;&lt;/p&gt;
+&lt;p&gt;and the key to &lt;em&gt;that&lt;/em&gt; is the normal vector. A vector which indicates which way a surface is facing. In the above diagram, the arrow sticking out of the center of the panel is the normal vector. You can see that when the light’s rays come in at a shallower angle, the panel is less influenced by the light and not lit up as much. So in the end, the algorithm is quite simple, as that angle increases, have the light source influence less. A simple way to calculate the influence is to calculate the dot product between the light vector and the normal vector.&lt;/p&gt;
+&lt;h3 id=&quot;dynamic-lighting-in-a-2d-environment&quot;&gt;dynamic lighting in a 2d environment&lt;/h3&gt;
+&lt;p&gt;That’s all well and good, but how do you have normal vectors in a 2d game? There aren’t any real 3D objects in the traditional sense, but textures can step in to provide the needed info. I created &lt;em&gt;normal maps&lt;/em&gt; for the two houses in the above video, and use them to calculate the lighting:&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;http://mattgreer.org/articles/dynamic-lighting-and-shadows/mansionNormals.png&quot; alt=&quot;mansion normals&quot;&gt;&lt;/p&gt;
+&lt;p&gt;For starters, you can see the actual house sprite has no shading drawn into it. Then the normal map encodes the normals for each pixel into a color. A vector needs to be specified with (x,y,z) coordinates, and an image has r,g and b values. So the encoding into the image is easy to do. Take the front face of the house, which is facing due south giving the normal vector values of &lt;code&gt;[x:0, y:0.5, z:0]&lt;/code&gt;. RGB values are positive, so need to shift the values up by 0.5 to force everything positive:  &lt;code&gt;[x:0.5, y:1, z:0.5]&lt;/code&gt;. And RGB values are normally represented as bytes, so multiply each value by &lt;code&gt;255&lt;/code&gt;, yielding (rounded up): &lt;code&gt;[x:128, y:255, z:128]&lt;/code&gt;, or in other words, this bright green &lt;span style=&quot;display:inline-block; width: 30px; height: 15px; background-color: rgb(128, 255, 128)&quot;&gt;&amp;nbsp;&lt;/span&gt;, the same green in the normal map image.&lt;/p&gt;
+&lt;p&gt;With our normals in tow, we’re ready to have the graphics card do its magic. My game is using &lt;a href=&quot;http://www.impactjs.com/&quot;&gt;ImpactJS&lt;/a&gt;, which is very compatibile with &lt;a href=&quot;https://github.com/gameclosure/webgl-2d&quot;&gt;WebGL2D&lt;/a&gt; Using WebGL2D, it was easy to add an additional fragment shader to implement the lighting:&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;lang-c&quot;&gt;&lt;span class=&quot;preprocessor&quot;&gt;#ifdef GL_ES&lt;/span&gt;
+  precision highp &lt;span class=&quot;keyword&quot;&gt;float&lt;/span&gt;;
+&lt;span class=&quot;preprocessor&quot;&gt;#endif&lt;/span&gt;
+
+varying vec2 vTextureCoord;
+uniform sampler2D uSampler;
+uniform vec3 lightDirection;
+uniform vec4 lightColor;
+
+&lt;span class=&quot;keyword&quot;&gt;void&lt;/span&gt; main(&lt;span class=&quot;keyword&quot;&gt;void&lt;/span&gt;) {
+  &lt;span class=&quot;comment&quot;&gt;// pull the normal vector out of the texture&lt;/span&gt;
+  vec4 rawNormal = texture2D(uSampler, vTextureCoord);
+
+  &lt;span class=&quot;comment&quot;&gt;// if the alpha channel is zero, then don't do lighting here&lt;/span&gt;
+  &lt;span class=&quot;keyword&quot;&gt;if&lt;/span&gt;(rawNormal.a == &lt;span class=&quot;number&quot;&gt;0.0&lt;/span&gt;) {
+    gl_FragColor = vec4(&lt;span class=&quot;number&quot;&gt;0&lt;/span&gt;, &lt;span class=&quot;number&quot;&gt;0&lt;/span&gt;, &lt;span class=&quot;number&quot;&gt;0&lt;/span&gt;, &lt;span class=&quot;number&quot;&gt;0&lt;/span&gt;);
+  } &lt;span class=&quot;keyword&quot;&gt;else&lt;/span&gt; {
+
+    &lt;span class=&quot;comment&quot;&gt;// translate from 0 to 1 to -.5 to .5&lt;/span&gt;
+    rawNormal -= &lt;span class=&quot;number&quot;&gt;0.5&lt;/span&gt;;
+
+    &lt;span class=&quot;comment&quot;&gt;// figure out how much the lighting influences this pixel&lt;/span&gt;
+    &lt;span class=&quot;keyword&quot;&gt;float&lt;/span&gt; lightWeight = 
+      dot(normalize(rawNormal.xyz), normalize(lightDirection));
+
+    lightWeight = max(lightWeight, &lt;span class=&quot;number&quot;&gt;0.0&lt;/span&gt;);
+
+    &lt;span class=&quot;comment&quot;&gt;// and drop the pixel in&lt;/span&gt;
+    gl_FragColor = lightColor * lightWeight;
+  }
+}&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Couple final points here. This is &lt;em&gt;per fragment lighting&lt;/em&gt;, which is a bit different from per vertex lighting. Since the vertices are completely
+irrelevant in 2D rendering (just 4 vertices to drop the texture into the scene), have no choice but to do per fragment lighting. No problem, per
+fragment lighting is more accurate anyway. Also this shader is only rendering the light itself. It assumes the main sprite has already been drawn. I have to admit I am cheating a little bit, as I am setting my &lt;code&gt;lightColor&lt;/code&gt; to a dark grey, and not sending out light but actually darkness. This
+is because lighting the pixels up makes them looked washed out. There are ways to resolve this, but for now I’m cheating a smidge.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;http://mattgreer.org/articles/dynamic-lighting-and-shadows/lightingExamples.png&quot; alt=&quot;lighting examples&quot;&gt;&lt;/p&gt;
+&lt;h2 id=&quot;part-two-casting-shadows&quot;&gt;part two: casting shadows&lt;/h2&gt;
+&lt;p&gt;Casting shadows in 3D environments is a well solved problem, using techniques like &lt;a href=&quot;http://en.wikipedia.org/wiki/Ray_tracing_(graphics&quot;&gt;raytracing&lt;/a&gt;) or &lt;a href=&quot;http://en.wikipedia.org/wiki/Shadow_mapping&quot;&gt;shadow mapping&lt;/a&gt; casting shadows in the scene is pretty easy to accomplish. I struggled to find an implementation in my 2D environment that I was happy with. I think I came up with a good solution, but for sure it has drawbacks.&lt;/p&gt;
+&lt;p&gt;In short, draw a line from a fragment (aka pixel) in the scene to the sun and see if anything gets in the way. if something does, that pixel is in the shade, else it’s in the sun. In the end it’s actually pretty simple.&lt;/p&gt;
+&lt;p&gt;The shader will get &lt;code&gt;xyAngle&lt;/code&gt; and &lt;code&gt;zAngle&lt;/code&gt; passed into it, indicating where the sun is. Since the sun is so far away, these two angles are the same for all pixels, as sunrays are effectively parallel to each other.&lt;/p&gt;
+&lt;p&gt;The other key piece of info the shader receives is the &lt;em&gt;height map&lt;/em&gt; for the world. This height map indicates how tall everything is, buildings, trees, etc. If a pixel is occupied by a building, then that pixel’s value will be something like 10, to indicate that building is 10 pixels tall.&lt;/p&gt;
+&lt;p&gt;So starting at the current pixel and using &lt;code&gt;xyAngle&lt;/code&gt;, we move over just a bit towards the sun in the x/y direction. Using the height map, we figure out how tall the pixel is at this location. If the pixel here is the same height or lower, then we keep moving towards the sun until we find a pixel that is taller than the current pixel.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;http://mattgreer.org/articles/dynamic-lighting-and-shadows/xyAngle.gif&quot; alt=&quot;xy angle&quot;&gt;&lt;/p&gt;
+&lt;p&gt;Once we find a pixel that has some height to it, we need to see if it’s tall enough to block the sun. Using &lt;code&gt;zAngle&lt;/code&gt;, we determine how tall this pixel needs to be to block the sun:&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;http://mattgreer.org/articles/dynamic-lighting-and-shadows/zAngle.gif&quot; alt=&quot;z angle&quot;&gt;&lt;/p&gt;
+&lt;p&gt;If it is tall enough, we are done, this pixel is in the shade. Otherwise we keep going. Eventually we give up and declare the pixel to be in the sun (currently I have that hard coded to 100 steps, which so far is working well)&lt;/p&gt;
+&lt;p&gt;Here is the code for the shader in simplified/pseudo form&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;lang-c&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;void&lt;/span&gt; main(&lt;span class=&quot;keyword&quot;&gt;void&lt;/span&gt;) {
+  &lt;span class=&quot;keyword&quot;&gt;float&lt;/span&gt; alpha = &lt;span class=&quot;number&quot;&gt;0.0&lt;/span&gt;;
+
+  &lt;span class=&quot;keyword&quot;&gt;if&lt;/span&gt;(isInShadow()) {
+    alpha = &lt;span class=&quot;number&quot;&gt;0.5&lt;/span&gt;;
+  }
+  gl_FragColor = vec4(&lt;span class=&quot;number&quot;&gt;0&lt;/span&gt;, &lt;span class=&quot;number&quot;&gt;0&lt;/span&gt;, &lt;span class=&quot;number&quot;&gt;0&lt;/span&gt;, alpha);
+}
+
+&lt;span class=&quot;keyword&quot;&gt;bool&lt;/span&gt; isInShadow() {
+  &lt;span class=&quot;keyword&quot;&gt;float&lt;/span&gt; height = getHeight(currentPixel);
+  &lt;span class=&quot;keyword&quot;&gt;float&lt;/span&gt; distance = &lt;span class=&quot;number&quot;&gt;0&lt;/span&gt;;
+
+  &lt;span class=&quot;keyword&quot;&gt;for&lt;/span&gt;(&lt;span class=&quot;keyword&quot;&gt;int&lt;/span&gt; i = &lt;span class=&quot;number&quot;&gt;0&lt;/span&gt;; i &amp;lt; &lt;span class=&quot;number&quot;&gt;100&lt;/span&gt;; ++i) {
+    distance += moveALittle();
+
+    vec2 otherPixel = getPixelAt(distance);
+    &lt;span class=&quot;keyword&quot;&gt;float&lt;/span&gt; otherHeight = getHeight(otherPixel);
+
+    &lt;span class=&quot;keyword&quot;&gt;if&lt;/span&gt;(otherHeight &amp;gt; height) {
+      &lt;span class=&quot;keyword&quot;&gt;float&lt;/span&gt; traceHeight = getTraceHeightAt(distance);
+      &lt;span class=&quot;keyword&quot;&gt;if&lt;/span&gt;(traceHeight &amp;lt;= otherHeight) {
+        &lt;span class=&quot;keyword&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;keyword&quot;&gt;true&lt;/span&gt;;
+      }
+    }
+  }
+  &lt;span class=&quot;keyword&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;keyword&quot;&gt;false&lt;/span&gt;;
+}&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;And here is the whole shebang:&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;lang-c&quot;&gt;&lt;span class=&quot;preprocessor&quot;&gt;#ifdef GL_ES&lt;/span&gt;
+  precision highp &lt;span class=&quot;keyword&quot;&gt;float&lt;/span&gt;;
+&lt;span class=&quot;preprocessor&quot;&gt;#endif&lt;/span&gt;
+
+vec2 extrude(vec2 other, &lt;span class=&quot;keyword&quot;&gt;float&lt;/span&gt; angle, &lt;span class=&quot;keyword&quot;&gt;float&lt;/span&gt; length) {
+  &lt;span class=&quot;keyword&quot;&gt;float&lt;/span&gt; x = length * cos(angle);
+  &lt;span class=&quot;keyword&quot;&gt;float&lt;/span&gt; y = length * sin(angle);
+
+  &lt;span class=&quot;keyword&quot;&gt;return&lt;/span&gt; vec2(other.x + x, other.y + y);
+}
+
+&lt;span class=&quot;keyword&quot;&gt;float&lt;/span&gt; getHeightAt(vec2 texCoord, &lt;span class=&quot;keyword&quot;&gt;float&lt;/span&gt; xyAngle, &lt;span class=&quot;keyword&quot;&gt;float&lt;/span&gt; distance,
+    sampler2D heightMap) {
+
+  vec2 newTexCoord = extrude(texCoord, xyAngle, distance);
+  &lt;span class=&quot;keyword&quot;&gt;return&lt;/span&gt; texture2D(heightMap, newTexCoord).r;
+}
+
+&lt;span class=&quot;keyword&quot;&gt;float&lt;/span&gt; getTraceHeight(&lt;span class=&quot;keyword&quot;&gt;float&lt;/span&gt; height, &lt;span class=&quot;keyword&quot;&gt;float&lt;/span&gt; zAngle, &lt;span class=&quot;keyword&quot;&gt;float&lt;/span&gt; distance) {
+  &lt;span class=&quot;keyword&quot;&gt;return&lt;/span&gt; distance * tan(zAngle) + height;
+}
+
+&lt;span class=&quot;keyword&quot;&gt;bool&lt;/span&gt; isInShadow(&lt;span class=&quot;keyword&quot;&gt;float&lt;/span&gt; xyAngle, &lt;span class=&quot;keyword&quot;&gt;float&lt;/span&gt; zAngle, sampler2D heightMap,
+    vec2 texCoord, &lt;span class=&quot;keyword&quot;&gt;float&lt;/span&gt; step) {
+
+  &lt;span class=&quot;keyword&quot;&gt;float&lt;/span&gt; distance;
+  &lt;span class=&quot;keyword&quot;&gt;float&lt;/span&gt; height;
+  &lt;span class=&quot;keyword&quot;&gt;float&lt;/span&gt; otherHeight;
+  &lt;span class=&quot;keyword&quot;&gt;float&lt;/span&gt; traceHeight;
+
+  height = texture2D(heightMap, texCoord).r;
+
+  &lt;span class=&quot;keyword&quot;&gt;for&lt;/span&gt;(&lt;span class=&quot;keyword&quot;&gt;int&lt;/span&gt; i = &lt;span class=&quot;number&quot;&gt;0&lt;/span&gt;; i &amp;lt; &lt;span class=&quot;number&quot;&gt;100&lt;/span&gt;; ++i) {
+    distance = step * &lt;span class=&quot;keyword&quot;&gt;float&lt;/span&gt;(i);
+    otherHeight = getHeightAt(texCoord, xyAngle, distance, heightMap);
+
+    &lt;span class=&quot;keyword&quot;&gt;if&lt;/span&gt;(otherHeight &amp;gt; height) {
+      traceHeight = getTraceHeight(height, zAngle, distance);
+      &lt;span class=&quot;keyword&quot;&gt;if&lt;/span&gt;(traceHeight &amp;lt;= otherHeight) {
+        &lt;span class=&quot;keyword&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;keyword&quot;&gt;true&lt;/span&gt;;
+      }
+    }
+  }
+
+  &lt;span class=&quot;keyword&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;keyword&quot;&gt;false&lt;/span&gt;;
+}
+
+varying vec2 vTextureCoord;
+uniform sampler2D uHeightMap;
+uniform &lt;span class=&quot;keyword&quot;&gt;float&lt;/span&gt; uXYAngle;
+uniform &lt;span class=&quot;keyword&quot;&gt;float&lt;/span&gt; uZAngle;
+uniform &lt;span class=&quot;keyword&quot;&gt;int&lt;/span&gt; uMaxShadowSteps;
+uniform &lt;span class=&quot;keyword&quot;&gt;float&lt;/span&gt; uTexStep;
+
+&lt;span class=&quot;keyword&quot;&gt;void&lt;/span&gt; main(&lt;span class=&quot;keyword&quot;&gt;void&lt;/span&gt;) {
+  &lt;span class=&quot;keyword&quot;&gt;float&lt;/span&gt; alpha = &lt;span class=&quot;number&quot;&gt;0.0&lt;/span&gt;;
+
+  &lt;span class=&quot;keyword&quot;&gt;if&lt;/span&gt;(isInShadow(uXYAngle, uZAngle, uHeightMap, uMaxShadowSteps,
+     vTextureCoord, uTexStep)) {
+
+    alpha = &lt;span class=&quot;number&quot;&gt;0.5&lt;/span&gt;;
+  }
+
+  gl_FragColor = vec4(&lt;span class=&quot;number&quot;&gt;0&lt;/span&gt;, &lt;span class=&quot;number&quot;&gt;0&lt;/span&gt;, &lt;span class=&quot;number&quot;&gt;0&lt;/span&gt;, alpha);
+}&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The &lt;code&gt;uTexStep&lt;/code&gt; uniform is how far to move over each time we check a nearby pixel. This is set to either &lt;code&gt;1/heightMap.width&lt;/code&gt; or &lt;code&gt;1/heightMap.height&lt;/code&gt; before invoking the shader. This is because textures in OpenGL are typically mapped from 0 to 1, so the inverse is how far to move to get to the next pixel.&lt;/p&gt;
+&lt;h3 id=&quot;shadow-wrap-up&quot;&gt;shadow wrap up&lt;/h3&gt;
+&lt;p&gt;Truth be told there are some minor details I’m leaving out in the above code, but the core idea is definitely there. One major problem with this approach is each pixel in the scene can only have one height. A good example of how this is a limitation is trees. I can tell the engine to cast a really low, long shadow for a tree, but the trunk will never show up in the shadow. This is because the overhang area at the bottom of the leaves is not recorded in the height map.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;http://mattgreer.org/articles/dynamic-lighting-and-shadows/shadow1.png&quot; alt=&quot;shadow example 1&quot;&gt;  &lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;http://mattgreer.org/articles/dynamic-lighting-and-shadows/shadow2.png&quot; alt=&quot;shadow example 2&quot;&gt;&lt;/p&gt;
 </description>
     </item>
     <item>
@@ -192,6 +352,23 @@ The theme used is tomorrow, you can find more themes &lt;a href=&quot;http://jmb
 &lt;pre&gt;&lt;code class=&quot;lang-python&quot;&gt;print(&lt;span class=&quot;string&quot;&gt;&quot;Hello World&quot;&lt;/span&gt;)&lt;/code&gt;&lt;/pre&gt;
 &lt;h3 id=&quot;ruby&quot;&gt;Ruby&lt;/h3&gt;
 &lt;pre&gt;&lt;code class=&quot;lang-ruby&quot;&gt;puts &lt;span class=&quot;string&quot;&gt;&quot;Hello world!&quot;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;
+</description>
+    </item>
+    <item>
+      <title>Still Waking up at 5am to Code?</title>
+      <link>http://mattgreer.org/articles/still-waking-up-at-5am/</link>
+      <pubDate>Sun, 26  Aug 2012 18:00:00 -0600</pubDate>
+      <guid isPermaLink="true">http://mattgreer.org/articles/still-waking-up-at-5am/</guid>
+      <author></author>
+      <description>&lt;p&gt;Back in January I posted an article about &lt;a href=&quot;http://mattgreer.org/articles/waking-up-at-5am-to-code/&quot;&gt;waking up at 5am to code&lt;/a&gt;. It seemed to really strike a chord with a lot of people. Lately I’ve been getting a handful of emails asking me if I still do this and where I’m at with it now. So I thought I’d post a quick follow up.&lt;/p&gt;
+&lt;h2 id=&quot;kept-it-solidly-up-for-about-6-weeks&quot;&gt;Kept it solidly up for about 6 weeks&lt;/h2&gt;
+&lt;p&gt;Waking up early to tackle personal projects is a good strategy. But it’s not without its cost. I managed to maintain it quite solidly for about 6 weeks. From there I found myself not waking up early on most weekend days for another few weeks. The early hours and extra load do take their toll, nothing is free unfortunately. I could feel my stress levels rising and overall just an extra level of feeling worn out. But how my day job is going is a factor there too.&lt;/p&gt;
+&lt;h2 id=&quot;anything-to-show-for-all-this-&quot;&gt;Anything to show for all this?&lt;/h2&gt;
+&lt;p&gt;My early hours were mostly dedicated to writing a little JavaScript game engine. One thing I did with it was create an animation &lt;a href=&quot;http://yaysarahandmatt.org/&quot;&gt;celebrating my wedding engagement&lt;/a&gt;. I’ve also been working on a game using the engine, an intro/preview of which can be found &lt;a href=&quot;http://mattgreer.org/media/labAdder/index.html&quot;&gt;here&lt;/a&gt;. I was pretty happy with my results and overall felt pretty darn productive.&lt;/p&gt;
+&lt;h2 id=&quot;sporadic-from-there-on&quot;&gt;Sporadic from there on&lt;/h2&gt;
+&lt;p&gt;I still do wake up early, but now it’s more in “spurts”. I will go for a week or two doing it, then take a break for a while. I also find my desire to do it depends on where I’m at inspiration wise. Lately I’ve also been getting more involved with local hack nights. Having a set aside “event” to do personal hacking I am finding is also a good way to accomplish productivity. Being both out of the house and the office to focus on personal projects really amps the focus for me. Experimenting and finding what works best is key.&lt;/p&gt;
+&lt;h2 id=&quot;also-finding-time-for-down-time&quot;&gt;Also finding time for down time&lt;/h2&gt;
+&lt;p&gt;My personality is very work oriented. I have a hard time relaxing and almost always want to be pushing forward on something. But lately I’ve been forcing myself to take certain weekends and 100% do nothing but relaxing, non-taxing things. They really do wonders for rejuvination and balance. Probably more than I’ve ever realized in the past. Related to the topic at hand, I have also woken up early just to then go for a nice long walk or watch morning news shows. I think my experiments in trying to hyper increase productivity have shown that down time is equally as important.&lt;/p&gt;&lt;/p&gt;
 </description>
     </item>
     <item>
@@ -947,6 +1124,49 @@ _   underscore
 &lt;p&gt;In spite of the impatience of the messengers and charioteers she kept them waiting while she wrote. She placed the phial of the Elixir of Life with the letter, and, giving them to the old man, she asked him to deliver them to the Emperor.&lt;/p&gt;
 &lt;p&gt;Then the chariot began to roll heavenwards towards the moon, and as they all gazed with tearful eyes at the receding Princess, the dawn broke, and in the rosy light of day the moon-chariot and all in it were lost amongst the fleecy clouds that were now wafted across the sky on the wings of the morning wind.&lt;/p&gt;
 &lt;p&gt;Princess Moonlight’s letter was carried to the Palace. His Majesty was afraid to touch the Elixir of Life, so he sent it with the letter to the top of the most sacred mountain in the land. Mount Fuji, and there the Royal emissaries burnt it on the summit at sunrise. So to this day people say there is smoke to be seen rising from the top of Mount Fuji to the clouds.&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Waking Up at 5am to Code</title>
+      <link>http://mattgreer.org/articles/waking-up-at-5am-to-code/</link>
+      <pubDate>Sun, 22 Jan 2012 17:00:00 -0700</pubDate>
+      <guid isPermaLink="true">http://mattgreer.org/articles/waking-up-at-5am-to-code/</guid>
+      <author></author>
+      <description>&lt;p&gt;I’m currently experimenting with waking up at 5am to work on personal projects before heading to work.&lt;/p&gt;
+&lt;p&gt;Someone on Hacker News once mentioned they do this, and it stuck in the back of my head ever since. I’ve been at this for two weeks thus far.&lt;/p&gt;
+&lt;h2 id=&quot;the-basic-idea&quot;&gt;The basic idea&lt;/h2&gt;
+&lt;p&gt;At 5am I jump out of bed and code for two hours, then get ready for work. I do this every day, including weekends. I maintain an online Kanban board which I groom/prep in the evenings while watching TV, to ensure I am ready to be productive the next morning.&lt;/p&gt;
+&lt;h2 id=&quot;enjoying-the-work-is-key&quot;&gt;Enjoying the work is key&lt;/h2&gt;
+&lt;p&gt;It’s 5am &lt;em&gt;and&lt;/em&gt; I will be also putting in a full day’s work afterwards. Not being stressed out or frustrated during this time is essential. I ensure this by working on truly personal projects that interest me and I have complete control over. I’m only two weeks in but so far no signs of getting worn out, in fact quite the opposite. It’s been pretty invigorating.&lt;/p&gt;
+&lt;h2 id=&quot;advantages&quot;&gt;Advantages&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;At 5am things are very quiet and serene. Nobody is on IM, no one is texting or emailing me. I find myself very focused. I am also aware of the cost of these two hours, which motivates me to be even more to focus and use them efficiently. So far, I have found I am very productive.&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;I have a well defined slot to do my work, and I am guaranteed at least 12 hours a week, typically 14-18 (how much I put in on a weekend can vary). This is very different from before when I’d try to carve time out of my life at the expense of other things. The strong structure has led to better time usage overall.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;I am only going to bed one hour earlier than I used to. To do this I do sacrifice a bit of reading time, and I get between 7-8 hours of sleep. But I’m (so far) ok with all of this&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;My evenings — and much of my weekend — are more relaxing. I can enjoy myself and unwind and not have a little voice in the back of my head telling me I really should be pushing forward on the game. If I want to work in the evening I can. But so far I am finding ~12 really good hours a week to be enough to propel my project forward at a comfortable pace. The itch to create is well satiated.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;I am finding myself turning off the project thinking and daydreaming and being more in the moment for the rest of my day.&lt;/li&gt;
+&lt;li&gt;When I head off to work I’m more awake, and feeling good about already having been productive.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&quot;disadvantages&quot;&gt;Disadvantages&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;At first waking up at 5am was very painful. But I am adjusting.&lt;/li&gt;
+&lt;li&gt;I may be wearing myself down more than I realize, and may not really know that for a while yet&lt;/li&gt;
+&lt;li&gt;I can’t listen to music as effectively as I’d like, lest I wake my girlfriend up. This may become an advantage though…&lt;/li&gt;
+&lt;li&gt;This could interfere with weekend plans. I do doubt it though, I’m not so young anymore and not really a late nighter these days.&lt;/li&gt;
+&lt;li&gt;Getting in a pinch and not making much progress during these early morning sessions may be a drag on the rest of the day. Hopefully that never happens, but it may eventually.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&quot;why-the-weekend-too-&quot;&gt;Why the weekend too?&lt;/h2&gt;
+&lt;p&gt;I find I am more likely to stick with something like this if I do it every day. Letting myself sleep in on the weekends makes me more likely to then sleep in on Monday too. It can unravel from there. That’s just my personality though.&lt;/p&gt;
+&lt;h2 id=&quot;the-kanban-board&quot;&gt;The Kanban board&lt;/h2&gt;
+&lt;p&gt;I’ve really become a fan of Kanban, even when just working by myself. I do feel this is a key element in this. It keeps me focused, forces me to break down my tasks into managable chunks (ideally finishable in 2 hours), and makes sure I am never messing around trying to think of where to go next.&lt;/p&gt;
+&lt;p&gt;I got requests to see a screenshot of my board, so here it is (click for full size):&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;http://mattgreer.org/articles/waking-up-at-5am-to-code/kanban.png&quot; alt=&quot;kanban&quot;&gt;&lt;/p&gt;
+&lt;h2 id=&quot;other-ideas&quot;&gt;Other ideas&lt;/h2&gt;
+&lt;p&gt;First I plan to see if this will really stick. I am optimisic it will. If it does, I think might look into a coffee pot that can have a nice cup waiting for me right when I get up. &lt;/p&gt;
+&lt;p&gt;I gave the standing desk idea a shot a while back and ultimately went back to sitting. But maybe for two hours in the morning standing would be more ideal? Worth looking into.&lt;/p&gt;
 </description>
     </item>
   </channel>

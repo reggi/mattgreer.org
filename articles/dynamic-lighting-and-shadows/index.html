@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <meta name="viewport" content="width=device-width">
-    <title>Dynamic Lighting and Shadows in my 2d Game - Matt Greer's Site
+    <title>Dynamic Lighting and Shadows in my 2d Game - mgreer blog
     </title>
     <link rel="alternate" href="http://mattgreer.org/feed.xml" type="application/rss+xml" title="Me talking about software and programming">
     <link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic|Anonymous+Pro:400,700,400italic,700italic|Merriweather:400,700,300">
@@ -14,14 +14,174 @@
     <header class="header">
       <div class="content-wrap">
         <h1>Dynamic Lighting and Shadows in my 2d Game</h1>
-        <p class="author">Written by <span class="author">Matt</span>
+        <p class="date">last updated <span class="date">17. October 2012</span>
         </p>
       </div>
     </header>
     <div id="content">
       <div class="content-wrap">
         <article class="article">
-          <section class="content"><p>dyn lighting and shadows&nbsp;here</p>
+          <section class="content"><p>I’m working on a stealth action game where shadows will play a big role in the gameplay. Using WebGL shaders, I implemented dynamic lighting and shadows. This post is the blog post I wish existed before I started :) Gritty details on how I implemented these&nbsp;below…</p>
+<p><span class="more"></span></p>
+<iframe width="560" height="315" style="margin-top: 3em; margin-bottom: 3em;" src="http://www.youtube.com/embed/ZMyg5erp-vk" frameborder="0" allowfullscreen></iframe>
+
+<h2 id="part-one-dynamic-lighting">Part one: dynamic&nbsp;lighting</h2>
+<p>I was inspired by <a href="http://www.reddit.com/r/gamedev/comments/115f3y/how_to_dynamic_lighting_on_sprites/">this post</a> on Reddit, where aionskull used normal maps in Unity to dynamically light up his sprites. gpillow also posted in the comments how he had done <a href="https://love2d.org/forums/viewtopic.php?f=5&amp;t=11076">something similar</a> in Love2D. <a href="/articles/dynamic-lighting-and-shadows/pixel_shading.gif">Here’s a large gif illustrating gpillow’s results</a>. I’d just include the gif here, but it’s 8 megs. Thanks to jusksmit for making the&nbsp;gif.</p>
+<p>So, what is dynamic lighting? It’s a 3D graphics technique where a light source lights up objects in the scene. It’s dynamic as the lighting effects update in real time as the light source moves around. This is pretty standard stuff in the 3D world and easy to translate into a 2D environment, assuming you can take advantage of&nbsp;shaders.</p>
+<p>The key is the angle the light hits a surface indicates how much the surface lights&nbsp;up.</p>
+<p><img src="/articles/dynamic-lighting-and-shadows/lighting.gif" alt="lighting diagram"></p>
+<p>and the key to <em>that</em> is the normal vector. A vector which indicates which way a surface is facing. In the above diagram, the arrow sticking out of the center of the panel is the normal vector. You can see that when the light’s rays come in at a shallower angle, the panel is less influenced by the light and not lit up as much. So in the end, the algorithm is quite simple, as that angle increases, have the light source influence less. A simple way to calculate the influence is to calculate the dot product between the light vector and the normal&nbsp;vector.</p>
+<h3 id="dynamic-lighting-in-a-2d-environment">dynamic lighting in a 2d&nbsp;environment</h3>
+<p>That’s all well and good, but how do you have normal vectors in a 2d game? There aren’t any real 3D objects in the traditional sense, but textures can step in to provide the needed info. I created <em>normal maps</em> for the two houses in the above video, and use them to calculate the&nbsp;lighting:</p>
+<p><img src="/articles/dynamic-lighting-and-shadows/mansionNormals.png" alt="mansion normals"></p>
+<p>For starters, you can see the actual house sprite has no shading drawn into it. Then the normal map encodes the normals for each pixel into a color. A vector needs to be specified with (x,y,z) coordinates, and an image has r,g and b values. So the encoding into the image is easy to do. Take the front face of the house, which is facing due south giving the normal vector values of <code>[x:0, y:0.5, z:0]</code>. <span class="caps">RGB</span> values are positive, so need to shift the values up by 0.5 to force everything positive:  <code>[x:0.5, y:1, z:0.5]</code>. And <span class="caps">RGB</span> values are normally represented as bytes, so multiply each value by <code>255</code>, yielding (rounded up): <code>[x:128, y:255, z:128]</code>, or in other words, this bright green <span style="display:inline-block; width: 30px; height: 15px; background-color: rgb(128, 255, 128)">&nbsp;</span>, the same green in the normal map&nbsp;image.</p>
+<p>With our normals in tow, we’re ready to have the graphics card do its magic. My game is using <a href="http://www.impactjs.com/">ImpactJS</a>, which is very compatibile with <a href="https://github.com/gameclosure/webgl-2d">WebGL2D</a> Using WebGL2D, it was easy to add an additional fragment shader to implement the&nbsp;lighting:</p>
+<pre><code class="lang-c"><span class="preprocessor">#ifdef GL_ES</span>
+  precision highp <span class="keyword">float</span>;
+<span class="preprocessor">#endif</span>
+
+varying vec2 vTextureCoord;
+uniform sampler2D uSampler;
+uniform vec3 lightDirection;
+uniform vec4 lightColor;
+
+<span class="keyword">void</span> main(<span class="keyword">void</span>) {
+  <span class="comment">// pull the normal vector out of the texture</span>
+  vec4 rawNormal = texture2D(uSampler, vTextureCoord);
+
+  <span class="comment">// if the alpha channel is zero, then don't do lighting here</span>
+  <span class="keyword">if</span>(rawNormal.a == <span class="number">0.0</span>) {
+    gl_FragColor = vec4(<span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>);
+  } <span class="keyword">else</span> {
+
+    <span class="comment">// translate from 0 to 1 to -.5 to .5</span>
+    rawNormal -= <span class="number">0.5</span>;
+
+    <span class="comment">// figure out how much the lighting influences this pixel</span>
+    <span class="keyword">float</span> lightWeight = 
+      dot(normalize(rawNormal.xyz), normalize(lightDirection));
+
+    lightWeight = max(lightWeight, <span class="number">0.0</span>);
+
+    <span class="comment">// and drop the pixel in</span>
+    gl_FragColor = lightColor * lightWeight;
+  }
+}</code></pre>
+<p>Couple final points here. This is <em>per fragment lighting</em>, which is a bit different from per vertex lighting. Since the vertices are completely
+irrelevant in 2D rendering (just 4 vertices to drop the texture into the scene), have no choice but to do per fragment lighting. No problem, per
+fragment lighting is more accurate anyway. Also this shader is only rendering the light itself. It assumes the main sprite has already been drawn. I have to admit I am cheating a little bit, as I am setting my <code>lightColor</code> to a dark grey, and not sending out light but actually darkness. This
+is because lighting the pixels up makes them looked washed out. There are ways to resolve this, but for now I’m cheating a&nbsp;smidge.</p>
+<p><img src="/articles/dynamic-lighting-and-shadows/lightingExamples.png" alt="lighting examples"></p>
+<h2 id="part-two-casting-shadows">part two: casting&nbsp;shadows</h2>
+<p>Casting shadows in 3D environments is a well solved problem, using techniques like <a href="http://en.wikipedia.org/wiki/Ray_tracing_(graphics">raytracing</a>) or <a href="http://en.wikipedia.org/wiki/Shadow_mapping">shadow mapping</a> casting shadows in the scene is pretty easy to accomplish. I struggled to find an implementation in my 2D environment that I was happy with. I think I came up with a good solution, but for sure it has&nbsp;drawbacks.</p>
+<p>In short, draw a line from a fragment (aka pixel) in the scene to the sun and see if anything gets in the way. if something does, that pixel is in the shade, else it’s in the sun. In the end it’s actually pretty&nbsp;simple.</p>
+<p>The shader will get <code>xyAngle</code> and <code>zAngle</code> passed into it, indicating where the sun is. Since the sun is so far away, these two angles are the same for all pixels, as sunrays are effectively parallel to each&nbsp;other.</p>
+<p>The other key piece of info the shader receives is the <em>height map</em> for the world. This height map indicates how tall everything is, buildings, trees, etc. If a pixel is occupied by a building, then that pixel’s value will be something like 10, to indicate that building is 10 pixels&nbsp;tall.</p>
+<p>So starting at the current pixel and using <code>xyAngle</code>, we move over just a bit towards the sun in the x/y direction. Using the height map, we figure out how tall the pixel is at this location. If the pixel here is the same height or lower, then we keep moving towards the sun until we find a pixel that is taller than the current&nbsp;pixel.</p>
+<p><img src="/articles/dynamic-lighting-and-shadows/xyAngle.gif" alt="xy angle"></p>
+<p>Once we find a pixel that has some height to it, we need to see if it’s tall enough to block the sun. Using <code>zAngle</code>, we determine how tall this pixel needs to be to block the&nbsp;sun:</p>
+<p><img src="/articles/dynamic-lighting-and-shadows/zAngle.gif" alt="z angle"></p>
+<p>If it is tall enough, we are done, this pixel is in the shade. Otherwise we keep going. Eventually we give up and declare the pixel to be in the sun (currently I have that hard coded to 100 steps, which so far is working&nbsp;well)</p>
+<p>Here is the code for the shader in simplified/pseudo&nbsp;form</p>
+<pre><code class="lang-c"><span class="keyword">void</span> main(<span class="keyword">void</span>) {
+  <span class="keyword">float</span> alpha = <span class="number">0.0</span>;
+
+  <span class="keyword">if</span>(isInShadow()) {
+    alpha = <span class="number">0.5</span>;
+  }
+  gl_FragColor = vec4(<span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, alpha);
+}
+
+<span class="keyword">bool</span> isInShadow() {
+  <span class="keyword">float</span> height = getHeight(currentPixel);
+  <span class="keyword">float</span> distance = <span class="number">0</span>;
+
+  <span class="keyword">for</span>(<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">100</span>; ++i) {
+    distance += moveALittle();
+
+    vec2 otherPixel = getPixelAt(distance);
+    <span class="keyword">float</span> otherHeight = getHeight(otherPixel);
+
+    <span class="keyword">if</span>(otherHeight &gt; height) {
+      <span class="keyword">float</span> traceHeight = getTraceHeightAt(distance);
+      <span class="keyword">if</span>(traceHeight &lt;= otherHeight) {
+        <span class="keyword">return</span> <span class="keyword">true</span>;
+      }
+    }
+  }
+  <span class="keyword">return</span> <span class="keyword">false</span>;
+}</code></pre>
+<p>And here is the whole&nbsp;shebang:</p>
+<pre><code class="lang-c"><span class="preprocessor">#ifdef GL_ES</span>
+  precision highp <span class="keyword">float</span>;
+<span class="preprocessor">#endif</span>
+
+vec2 extrude(vec2 other, <span class="keyword">float</span> angle, <span class="keyword">float</span> length) {
+  <span class="keyword">float</span> x = length * cos(angle);
+  <span class="keyword">float</span> y = length * sin(angle);
+
+  <span class="keyword">return</span> vec2(other.x + x, other.y + y);
+}
+
+<span class="keyword">float</span> getHeightAt(vec2 texCoord, <span class="keyword">float</span> xyAngle, <span class="keyword">float</span> distance,
+    sampler2D heightMap) {
+
+  vec2 newTexCoord = extrude(texCoord, xyAngle, distance);
+  <span class="keyword">return</span> texture2D(heightMap, newTexCoord).r;
+}
+
+<span class="keyword">float</span> getTraceHeight(<span class="keyword">float</span> height, <span class="keyword">float</span> zAngle, <span class="keyword">float</span> distance) {
+  <span class="keyword">return</span> distance * tan(zAngle) + height;
+}
+
+<span class="keyword">bool</span> isInShadow(<span class="keyword">float</span> xyAngle, <span class="keyword">float</span> zAngle, sampler2D heightMap,
+    vec2 texCoord, <span class="keyword">float</span> step) {
+
+  <span class="keyword">float</span> distance;
+  <span class="keyword">float</span> height;
+  <span class="keyword">float</span> otherHeight;
+  <span class="keyword">float</span> traceHeight;
+
+  height = texture2D(heightMap, texCoord).r;
+
+  <span class="keyword">for</span>(<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">100</span>; ++i) {
+    distance = step * <span class="keyword">float</span>(i);
+    otherHeight = getHeightAt(texCoord, xyAngle, distance, heightMap);
+
+    <span class="keyword">if</span>(otherHeight &gt; height) {
+      traceHeight = getTraceHeight(height, zAngle, distance);
+      <span class="keyword">if</span>(traceHeight &lt;= otherHeight) {
+        <span class="keyword">return</span> <span class="keyword">true</span>;
+      }
+    }
+  }
+
+  <span class="keyword">return</span> <span class="keyword">false</span>;
+}
+
+varying vec2 vTextureCoord;
+uniform sampler2D uHeightMap;
+uniform <span class="keyword">float</span> uXYAngle;
+uniform <span class="keyword">float</span> uZAngle;
+uniform <span class="keyword">int</span> uMaxShadowSteps;
+uniform <span class="keyword">float</span> uTexStep;
+
+<span class="keyword">void</span> main(<span class="keyword">void</span>) {
+  <span class="keyword">float</span> alpha = <span class="number">0.0</span>;
+
+  <span class="keyword">if</span>(isInShadow(uXYAngle, uZAngle, uHeightMap, uMaxShadowSteps,
+     vTextureCoord, uTexStep)) {
+
+    alpha = <span class="number">0.5</span>;
+  }
+
+  gl_FragColor = vec4(<span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, alpha);
+}</code></pre>
+<p>The <code>uTexStep</code> uniform is how far to move over each time we check a nearby pixel. This is set to either <code>1/heightMap.width</code> or <code>1/heightMap.height</code> before invoking the shader. This is because textures in OpenGL are typically mapped from 0 to 1, so the inverse is how far to move to get to the next&nbsp;pixel.</p>
+<h3 id="shadow-wrap-up">shadow wrap&nbsp;up</h3>
+<p>Truth be told there are some minor details I’m leaving out in the above code, but the core idea is definitely there. One major problem with this approach is each pixel in the scene can only have one height. A good example of how this is a limitation is trees. I can tell the engine to cast a really low, long shadow for a tree, but the trunk will never show up in the shadow. This is because the overhang area at the bottom of the leaves is not recorded in the height&nbsp;map.</p>
+<p><img src="/articles/dynamic-lighting-and-shadows/shadow1.png" alt="shadow example 1">  </p>
+<p><img src="/articles/dynamic-lighting-and-shadows/shadow2.png" alt="shadow example 2"></p>
 </section>
         </article>
       </div>
@@ -29,20 +189,11 @@
     <footer>
       <div class="content-wrap">
         <div class="nav"><a href="/">« Full blog</a></div>
-        <section class="about"><p>Wintersmith is made by <a href="http://johan-nordberg.com/">Johan Nordberg</a> and licensed under the <a href="http://opensource.org/licenses/MIT">MIT-license</a>.
-This footer text can be edited in about.md</p>
-<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod
-tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
-quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
-consequat.</p>
-<p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum
-dolore eu fugiat nulla pariatur.</p>
-<p>Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia
-deserunt mollit anim id est laborum.</p>
+        <section class="about"><p>This blog is by Matt Greer. You can find me on <a href="http://github.com/city41">github</a>, <a href="http://twitter.com/cityfortyone">twitter</a>, <a href="http://stackoverflow.com/users/194940/matt-greer">stackoverflow</a>, <a href="https://news.ycombinator.com/user?id=city41">Hacker News</a> and <a href="mailto:matt.e.greer@gmail.com">by email</a></p>
 
         </section>
         <section class="copy">
-          <p>&copy; 2013 matt &mdash; powered by&nbsp;<a href="https://github.com/jnordberg/wintersmith">Wintersmith</a>
+          <p>&copy; 2013 Matt Greer &mdash; powered by&nbsp;<a href="https://github.com/jnordberg/wintersmith">Wintersmith</a>
           </p>
         </section>
       </div>
