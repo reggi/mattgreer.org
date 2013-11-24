@@ -1,0 +1,45 @@
+  .charts {
+    margin: 1em 0 2em 0;
+  }
+  
+  .charts img {
+    margin-bottom: 0.5em;
+  }
+
+  #debugOutputDiv {
+    margin-top: 20px;
+  }
+
+  .debug-msg {
+    margin-top: 4px;
+    margin-bottom: 4px;
+    background-color: #dedede;
+  }
+
+  .debug-msg:last-child {
+      margin-bottom: 20px;
+  }
+
+  .debug-header {
+    padding: 3px;
+    text-align: right;
+    width: 80px;
+    display: inline-block;
+    margin-right: 10px;
+  }
+
+  .info {
+    background-color: gray;
+  }
+
+  .error {
+    background-color: red;
+    color: white;
+    font-weight: bold;
+  }
+
+  .warning {
+    background-color: #FFCC00;
+    font-weight: bold;
+  }
+
