@@ -4,24 +4,33 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <meta name="viewport" content="width=device-width">
-    <title>Yokul - Google Charts Reimplemented in a Local JS Canvas - mgreer blog
+    <title>Yokul - Google Charts Reimplemented in a Local JS Canvas - Matt Greer
     </title>
     <link rel="alternate" href="http://mattgreer.org/feed.xml" type="application/rss+xml" title="Me talking about software and programming">
-    <link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic|Anonymous+Pro:400,700,400italic,700italic|Merriweather:400,700,300">
-    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Lato:300,400,700|">
+    <link rel="stylesheet" href="/css/font-awesome.min.css">
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/blog.css">
   </head>
   <body class="article-detail">
     <header class="header">
-      <div class="content-wrap">
-        <h1>Yokul - Google Charts Reimplemented in a Local JS Canvas</h1>
-        <p class="date">last updated <span class="date">5. June 2011</span>
-        </p>
+      <div class="title clearfix"><a href="/">
+          <h1 class="pull-left">Matt Greer</h1></a>
+        <div class="links pull-right hidden-xs"><a href="stuff.html">stuff I've made</a></div>
+      </div>
+      <div class="banner-bg">
+        <div class="banner"></div>
       </div>
     </header>
     <div id="content">
-      <div class="content-wrap">
-        <article class="article">
-          <section class="content"><p><a href="https://github.com/city41/yokul">Yokul</a> is a little JavaScript experiment I’ve been playing with in my free time. Using the same query string you’d normally send to the <a href="http://code.google.com/apis/chart/image/">Google Image Chart <span class="caps">API</span></a> a local chart is created on the client using an <span class="caps">HTML5</span>&nbsp;canvas.</p>
+      <div class="container">
+        <div class="row">
+          <div class="col-md-offset-1 col-md-10">
+            <h1>Yokul - Google Charts Reimplemented in a Local JS Canvas</h1>
+            <div class="date"><span class="date">5. June 2011</span>
+            </div>
+            <article class="article">
+              <section class="content"><p><a href="https://github.com/city41/yokul">Yokul</a> is a little JavaScript experiment I’ve been playing with in my free time. Using the same query string you’d normally send to the <a href="http://code.google.com/apis/chart/image/">Google Image Chart API</a> a local chart is created on the client using an HTML5 canvas.</p>
 <p><link rel="stylesheet" href="yokul.css"></link>
 <span class="more"></span></p>
 <p><style>
@@ -33,47 +42,47 @@
 <img data-src="http://chart.apis.google.com/chart?chxr=2,-5,100&chxs=0,676767,10.5,0,l,676767&chxt=y,x&chbh=24,2,1&chs=400x245&cht=bvs&chco=BBCCED,FF9900,3366CC&chds=0,95,0,100,0,105&chd=t:44,33,30,20,30,40,30,20,55|0,0,40,0,40,0,40,0,0|0,20,0,67,0,20,0,63,0&chdl=water|orange stripes|blue stripes&&chma=|40,40&chtt=Chart+Fish+Done+With+Yokul&chts=0C3890,20.5&chxl=0:|deep|shallow|air" />
 </div>
 
-<p>Here is a <a href="/articles/yokul/VerticalBar.min.html">page of charts</a> to play&nbsp;with</p>
+<p>Here is a <a href="/articles/yokul/VerticalBar.min.html">page of charts</a> to play with</p>
 <p><h2>Advantages</h2></p>
 <ul>
-<li>Open source and completely runs on the client, no data is sent to any third&nbsp;parties</li>
-<li>If your site has a lot of charts, this will save a lot of bandwidth. Granted it’s saving Google’s and your user’s bandwidth so you may not&nbsp;care</li>
-<li>It can render many charts much faster than Google can, limited only by the power of the user’s&nbsp;machine</li>
-<li>No need to send Google Charts a <span class="caps">POST</span> for complex chart definitions, Yokul will take a query string of any&nbsp;length</li>
-<li>Some of Google’s limitations like chart size are not present in Yokul. Want to make a 10,000x10,000 pixel chart? Have at&nbsp;it</li>
-<li>No internet connection is required for Yokul to&nbsp;work</li>
-<li>Animating a Yokul chart will be pretty easy to do and is high on the list of things to do&nbsp;next</li>
+<li>Open source and completely runs on the client, no data is sent to any third parties</li>
+<li>If your site has a lot of charts, this will save a lot of bandwidth. Granted it’s saving Google’s and your user’s bandwidth so you may not care</li>
+<li>It can render many charts much faster than Google can, limited only by the power of the user’s machine</li>
+<li>No need to send Google Charts a POST for complex chart definitions, Yokul will take a query string of any length</li>
+<li>Some of Google’s limitations like chart size are not present in Yokul. Want to make a 10,000x10,000 pixel chart? Have at it</li>
+<li>No internet connection is required for Yokul to work</li>
+<li>Animating a Yokul chart will be pretty easy to do and is high on the list of things to do next</li>
 </ul>
 <p><h2>Disadvantages</h2></p>
 <ul>
-<li>Your user must have JavaScript enabled and a modern browser to see the&nbsp;chart</li>
-<li>Yokul, so far, doesn’t come even close to implementing all of Google Charts and if it ever does, it’ll be a&nbsp;while</li>
-<li>Not a trivial drop in replacement, to use Yokul you do need to change your markup a bit (see&nbsp;below)</li>
+<li>Your user must have JavaScript enabled and a modern browser to see the chart</li>
+<li>Yokul, so far, doesn’t come even close to implementing all of Google Charts and if it ever does, it’ll be a while</li>
+<li>Not a trivial drop in replacement, to use Yokul you do need to change your markup a bit (see below)</li>
 </ul>
-<p><h2>Yokul Depends&nbsp;On</h2>
-A browser having Canvas. That’s about it. No other JavaScript library is&nbsp;required.</p>
-<p><h2>What Works So&nbsp;Far</h2>
-So far just vertical bar charts (grouped, stacked and overlapped) are implemented. There are some parameters that are not implemented, others that have bugs and others that are only partially implemented. See the <a href="/VerticalBar.min.html">sample page</a> for a decent overview of what Yokul is currently capable&nbsp;of</p>
-<p><h2>Quick&nbsp;Start</h2></p>
+<p><h2>Yokul Depends On</h2>
+A browser having Canvas. That’s about it. No other JavaScript library is required.</p>
+<p><h2>What Works So Far</h2>
+So far just vertical bar charts (grouped, stacked and overlapped) are implemented. There are some parameters that are not implemented, others that have bugs and others that are only partially implemented. See the <a href="/VerticalBar.min.html">sample page</a> for a decent overview of what Yokul is currently capable of</p>
+<p><h2>Quick Start</h2></p>
 <ol>
-<li>Grab <a href="https://github.com/city41/yokul/raw/master/min/yokul.min.js">yokul.min.js</a> and reference&nbsp;it</li>
+<li>Grab <a href="https://github.com/city41/yokul/raw/master/min/yokul.min.js">yokul.min.js</a> and reference it</li>
 <li>Change all the <code>src</code> attributes in your Google Chart images to <code>data-src</code> attributes</li>
 <li>Call <code>YOKUL.convertAllImages()</code></li>
 </ol>
-<p><h2>Showing debug info and&nbsp;errors</h2>
-Yokul is very early at this point, you will certainly run into issues. Mostly you’ll find some of your favorite chart types and/or parameters aren’t implemented yet. Yokul will let you know if you set up a debug output div for&nbsp;it.</p>
-<p>Create a div on your page that Yokul can write to. Tell Yokul where this div is&nbsp;with </p>
+<p><h2>Showing debug info and errors</h2>
+Yokul is very early at this point, you will certainly run into issues. Mostly you’ll find some of your favorite chart types and/or parameters aren’t implemented yet. Yokul will let you know if you set up a debug output div for it.</p>
+<p>Create a div on your page that Yokul can write to. Tell Yokul where this div is with </p>
 <pre><code class="lang-javascript">  YOKUL.debugOutput = <span class="string">"idOfYourDebugDiv"</span>;
-  <span class="caps">YOKUL</span>.logOutput = { info: <span class="literal">false</span>, warning: <span class="literal">true</span>, error: <span class="literal">true</span> };</code></pre>
-<p>Ideally do this before you do anything else with Yokul. Here is the debug output from creating the above&nbsp;chart:</p>
+  YOKUL.logOutput = { info: <span class="literal">false</span>, warning: <span class="literal">true</span>, error: <span class="literal">true</span> };</code></pre>
+<p>Ideally do this before you do anything else with Yokul. Here is the debug output from creating the above chart:</p>
 <div id="debugOutputDiv"></div>
 
-<p>You will need to set up some <span class="caps">CSS</span> styles for this output to look nice, view the source of this page to see my&nbsp;styles</p></p>
-<p><h2>Converting just one&nbsp;image</h2>
-If <code>convertAllImages()</code> is too course for you, you can call <code>YOKUL.chartCreator.create(id, [query])</code>.&nbsp;Where:</p>
+<p>You will need to set up some CSS styles for this output to look nice, view the source of this page to see my styles</p></p>
+<p><h2>Converting just one image</h2>
+If <code>convertAllImages()</code> is too course for you, you can call <code>YOKUL.chartCreator.create(id, [query])</code>. Where:</p>
 <ul>
-<li><strong>id</strong> is a <span class="caps">DOM</span> id of an img element. This img’s src will be set to the generated chart&nbsp;image</li>
-<li><strong>query</strong> the chart query string you’d normally send to Google. This is optional and if not provided Yokul will try and find the query string in the img&nbsp;element</li>
+<li><strong>id</strong> is a DOM id of an img element. This img’s src will be set to the generated chart image</li>
+<li><strong>query</strong> the chart query string you’d normally send to Google. This is optional and if not provided Yokul will try and find the query string in the img element</li>
 </ul>
 <script type="text/javascript">
   YOKUL.debugOutput = "debugOutputDiv";
@@ -83,19 +92,31 @@ If <code>convertAllImages()</code> is too course for you, you can call <code>YOK
 
 
 </section>
-        </article>
+            </article>
+          </div>
+        </div>
       </div>
     </div>
     <footer>
-      <div class="content-wrap">
-        <div class="nav"><a href="/">« Full blog</a></div>
-        <section class="about"><p>This blog is by Matt Greer. You can find me on <a href="http://github.com/city41">github</a>, <a href="http://twitter.com/cityfortyone">twitter</a>, <a href="http://stackoverflow.com/users/194940/matt-greer">stackoverflow</a>, <a href="https://news.ycombinator.com/user?id=city41">Hacker News</a> and <a href="mailto:matt.e.greer@gmail.com">by email</a></p>
+      <div class="container">
+        <div class="row">
+          <div class="col-md-offset-1 col-md-6">
+            <div class="wave"></div>
+            <div> <p>Hi, I’m Matt Greer, thanks for stopping by. I’m a developer based out of Denver, CO. I am mostly interested in web related technology, 
+but also dabble in games, objective-c and startup related topics</p>
 
-        </section>
-        <section class="copy">
-          <p>&copy; 2013 Matt Greer &mdash; powered by&nbsp;<a href="https://github.com/jnordberg/wintersmith">Wintersmith</a>
-          </p>
-        </section>
+            </div>
+          </div>
+          <div class="col-md-4"> <ul>
+<li><i class="fa fa-envelope"></i> <a href="mailto:matt.e.greer@gmail.com">matt.e.greer@gmail.com</a></li>
+<li><i class="fa fa-twitter"></i> <a href="http://twitter.com/cityfortyone">@cityfortyone</a></li>
+<li><i class="fa fa-stack-overflow"></i> <a href="http://stackoverflow.com/users/194940/matt-greer">StackOverflow</a></li>
+<li><i class="fa fa-github"></i> <a href="https://github.com/city41">GitHub</a></li>
+<li><i class="fa fa-rss"></i> <a href="/feed.xml">rss</a></li>
+</ul>
+
+          </div>
+        </div>
       </div>
     </footer>
   </body>
