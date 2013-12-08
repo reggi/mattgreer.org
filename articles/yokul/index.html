@@ -39,8 +39,6 @@
 <p><span class="more"></span></p>
 <link rel="stylesheet" href="yokul.css"></link>
 
-<p><style>
-</style></p>
 <script type="text/javascript" src="/js/yokul/yokul.min.js"></script>
 
 <div class="charts">
@@ -49,7 +47,7 @@
 </div>
 
 <p>Here is a <a href="/articles/yokul/VerticalBar.min.html">page of charts</a> to play with</p>
-<p><h2>Advantages</h2></p>
+<h2 id="advantages">Advantages</h2>
 <ul>
 <li>Open source and completely runs on the client, no data is sent to any third parties</li>
 <li>If your site has a lot of charts, this will save a lot of bandwidth. Granted it’s saving Google’s and your user’s bandwidth so you may not care</li>
@@ -59,24 +57,24 @@
 <li>No internet connection is required for Yokul to work</li>
 <li>Animating a Yokul chart will be pretty easy to do and is high on the list of things to do next</li>
 </ul>
-<p><h2>Disadvantages</h2></p>
+<h2 id="disadvantages">Disadvantages</h2>
 <ul>
 <li>Your user must have JavaScript enabled and a modern browser to see the chart</li>
 <li>Yokul, so far, doesn’t come even close to implementing all of Google Charts and if it ever does, it’ll be a while</li>
 <li>Not a trivial drop in replacement, to use Yokul you do need to change your markup a bit (see below)</li>
 </ul>
-<p><h2>Yokul Depends On</h2>
-A browser having Canvas. That’s about it. No other JavaScript library is required.</p>
-<p><h2>What Works So Far</h2>
-So far just vertical bar charts (grouped, stacked and overlapped) are implemented. There are some parameters that are not implemented, others that have bugs and others that are only partially implemented. See the <a href="/VerticalBar.min.html">sample page</a> for a decent overview of what Yokul is currently capable of</p>
-<p><h2>Quick Start</h2></p>
+<h2 id="yokul-depends-on">Yokul Depends On</h2>
+<p>A browser having Canvas. That’s about it. No other JavaScript library is required.</p>
+<h2 id="what-works-so-far">What Works So Far</h2>
+<p>So far just vertical bar charts (grouped, stacked and overlapped) are implemented. There are some parameters that are not implemented, others that have bugs and others that are only partially implemented. See the <a href="/VerticalBar.min.html">sample page</a> for a decent overview of what Yokul is currently capable of</p>
+<h2 id="quick-start">Quick Start</h2>
 <ol>
 <li>Grab <a href="https://github.com/city41/yokul/raw/master/min/yokul.min.js">yokul.min.js</a> and reference it</li>
 <li>Change all the <code>src</code> attributes in your Google Chart images to <code>data-src</code> attributes</li>
 <li>Call <code>YOKUL.convertAllImages()</code></li>
 </ol>
-<p><h2>Showing debug info and errors</h2>
-Yokul is very early at this point, you will certainly run into issues. Mostly you’ll find some of your favorite chart types and/or parameters aren’t implemented yet. Yokul will let you know if you set up a debug output div for it.</p>
+<h2 id="showing-debug-info-and-errors">Showing debug info and errors</h2>
+<p>Yokul is very early at this point, you will certainly run into issues. Mostly you’ll find some of your favorite chart types and/or parameters aren’t implemented yet. Yokul will let you know if you set up a debug output div for it.</p>
 <p>Create a div on your page that Yokul can write to. Tell Yokul where this div is with </p>
 <pre><code class="lang-javascript">  YOKUL.debugOutput = <span class="string">"idOfYourDebugDiv"</span>;
   YOKUL.logOutput = { info: <span class="literal">false</span>, warning: <span class="literal">true</span>, error: <span class="literal">true</span> };</code></pre>
@@ -84,8 +82,8 @@ Yokul is very early at this point, you will certainly run into issues. Mostly yo
 <div id="debugOutputDiv"></div>
 
 <p>You will need to set up some CSS styles for this output to look nice, view the source of this page to see my styles</p></p>
-<p><h2>Converting just one image</h2>
-If <code>convertAllImages()</code> is too course for you, you can call <code>YOKUL.chartCreator.create(id, [query])</code>. Where:</p>
+<h2 id="converting-just-one-image">Converting just one image</h2>
+<p>If <code>convertAllImages()</code> is too course for you, you can call <code>YOKUL.chartCreator.create(id, [query])</code>. Where:</p>
 <ul>
 <li><strong>id</strong> is a DOM id of an img element. This img’s src will be set to the generated chart image</li>
 <li><strong>query</strong> the chart query string you’d normally send to Google. This is optional and if not provided Yokul will try and find the query string in the img element</li>
