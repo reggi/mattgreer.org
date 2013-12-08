@@ -246,8 +246,9 @@ uniform &lt;span class=&quot;keyword&quot;&gt;float&lt;/span&gt; uTexStep;
       <guid isPermaLink="true">http://mattgreer.org/articles/yokul/</guid>
       <author></author>
       <description>&lt;p&gt;&lt;a href=&quot;https://github.com/city41/yokul&quot;&gt;Yokul&lt;/a&gt; is a little JavaScript experiment I’ve been playing with in my free time. Using the same query string you’d normally send to the &lt;a href=&quot;http://code.google.com/apis/chart/image/&quot;&gt;Google Image Chart API&lt;/a&gt; a local chart is created on the client using an HTML5 canvas.&lt;/p&gt;
-&lt;p&gt;&lt;link rel=&quot;stylesheet&quot; href=&quot;yokul.css&quot;&gt;&lt;/link&gt;
-&lt;span class=&quot;more&quot;&gt;&lt;/span&gt;&lt;/p&gt;
+&lt;p&gt;&lt;span class=&quot;more&quot;&gt;&lt;/span&gt;&lt;/p&gt;
+&lt;link rel=&quot;stylesheet&quot; href=&quot;yokul.css&quot;&gt;&lt;/link&gt;
+
 &lt;p&gt;&lt;style&gt;
 &lt;/style&gt;&lt;/p&gt;
 &lt;script type=&quot;text/javascript&quot; src=&quot;/js/yokul/yokul.min.js&quot;&gt;&lt;/script&gt;
