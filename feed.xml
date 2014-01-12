@@ -5,9 +5,69 @@
     <atom:link href="http://mattgreer.org/feed.xml" rel="self" type="application/rss+xml"></atom:link>
     <link>http://mattgreer.org</link>
     <description>Me talking about software and programming</description>
-    <pubDate>Tue, 16 Oct 2012 18:00:00 -0600</pubDate>
+    <pubDate>Sat, 11 Jan 2014 17:00:00 -0700</pubDate>
     <generator>Wintersmith - https://github.com/jnordberg/wintersmith</generator>
     <language>en</language>
+    <item>
+      <title>CoffeeScript's Time is Waning For Me</title>
+      <link>http://mattgreer.org/articles/coffeescripts-time-is-waning/</link>
+      <pubDate>Sat, 11 Jan 2014 17:00:00 -0700</pubDate>
+      <guid isPermaLink="true">http://mattgreer.org/articles/coffeescripts-time-is-waning/</guid>
+      <author></author>
+      <description>&lt;p&gt;CoffeeScript was a welcome addition when it first arrived. Nowadays though, I am
+finding its benefits are decreasing, and its drawbacks are increasing. I plan to
+no longer use CoffeeScript in my future projects, here is why.&lt;/p&gt;
+&lt;p&gt;&lt;span class=&quot;more&quot;&gt;&lt;/span&gt;&lt;/p&gt;
+&lt;p&gt;I’ve tweeted about this here and there, and today someone asked me why. 
+So I thought I’d blog it out.&lt;/p&gt;
+&lt;h2 id=&quot;ecmascript-6-has-the-key-coffeescript-features-i-like&quot;&gt;EcmaScript 6 Has the Key CoffeeScript Features I Like&lt;/h2&gt;
+&lt;p&gt;arrow functions, destructuring assignment and shorthand object literals are my
+favorite features of CoffeeScript. They are all in EcmaScript 6. This is the
+biggest reason why CoffeeScript is becoming less relevant to me. For sure, ES6
+has a ways to go and not even Node has these features yet. But by the time my
+current project is done, Node’s Harmony support will likely meet my needs.&lt;/p&gt;
+&lt;h2 id=&quot;ecmascript-6-has-none-of-the-coffeescript-features-i-hate&quot;&gt;EcmaScript 6 Has None of the CoffeeScript Features I Hate&lt;/h2&gt;
+&lt;h3 id=&quot;significant-whitespace&quot;&gt;significant whitespace&lt;/h3&gt;
+&lt;p&gt;I &lt;em&gt;hate&lt;/em&gt; significant whitespace, and always have. I downright think it’s wrong.
+I grudgingly accepted it when adopting CoffeeScript. I really look forward to no
+longer dealing with it.&lt;/p&gt;
+&lt;p&gt;As my project grows in size, significant whitespace becomes more and more of a
+problem. It’s just plain not readable or visually parsable. Your files become a
+wall of dense text. Damn you Python, damn you to hell!&lt;/p&gt;
+&lt;h3 id=&quot;implicit-return&quot;&gt;implicit return&lt;/h3&gt;
+&lt;p&gt;Using CoffeeScript has also made me dislike implicit return. Saving one keyword
+is not worth this:&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;lang-ruby&quot;&gt;&lt;span class=&quot;class&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;module&lt;/span&gt;((&lt;span class=&quot;title&quot;&gt;provide&lt;/span&gt;) -&amp;gt;&lt;/span&gt;
+  provide.value(&lt;span class=&quot;string&quot;&gt;'foo'&lt;/span&gt;, bar)
+  &lt;span class=&quot;keyword&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;comment&quot;&gt;# &amp;lt;-- bleh&lt;/span&gt;
+)&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;without &lt;code&gt;return&lt;/code&gt; (or &lt;code&gt;null&lt;/code&gt; or &lt;code&gt;undefined&lt;/code&gt;, all ugly), the return value is
+&lt;code&gt;provide.value()&lt;/code&gt;s return value (a function), which is not what &lt;code&gt;module()&lt;/code&gt;
+wants here (leading to an error). I often have to do this to avoid loops
+becoming unneeded expressions too. The real problem here though is not the
+ugliness, but the occassional surprises. I don’t even use implicit return, so a
+double whammy for me.&lt;/p&gt;
+&lt;h2 id=&quot;ecmascript-5-is-ubiquitous-for-me&quot;&gt;EcmaScript 5 is Ubiquitous for Me&lt;/h2&gt;
+&lt;p&gt;I have to support IE8 at work, but not at home. ES5’s features (especially the
+array functions) negate even more of CoffeeScript’s features for me.
+CoffeeScript compiling all of its loop constructs into a standard for loop is a
+nice little bonus though.&lt;/p&gt;
+&lt;h2 id=&quot;open-source-code-is-better-written-in-javascript&quot;&gt;Open Source Code is Better Written in JavaScript&lt;/h2&gt;
+&lt;p&gt;If you’re contributing to the JS community, you’re better off writing in
+JavaScript. More people will contribute and/or adopt your code. &lt;/p&gt;
+&lt;h2 id=&quot;tooling-support&quot;&gt;Tooling Support&lt;/h2&gt;
+&lt;p&gt;Tooling support for CoffeeScript is pretty darn good. But it’s not
+perfect. It &lt;em&gt;is&lt;/em&gt; perfect with JavaScript, it has to be. This is a minor point, but
+eliminating even a little bit of friction is a good thing. Tools all tend
+to support CoffeeScript just a little bit differently: where they dump the
+compiled JS, how to specify wrap, etc. &lt;/p&gt;
+&lt;p&gt;Not having to &lt;code&gt;grunt watch&lt;/code&gt; your JS is another minor win.&lt;/p&gt;
+&lt;h2 id=&quot;coffeescript-isn-t-irrelevant-yet&quot;&gt;CoffeeScript Isn’t Irrelevant Yet&lt;/h2&gt;
+&lt;p&gt;Even for me, and it won’t be for a while yet. But I do suspect I’m on my last CS
+project. If you need to support old IEs, want to use PhantomJS, etc, then CS is
+still very welcome. &lt;/p&gt;
+</description>
+    </item>
     <item>
       <title>Dynamic Lighting and Shadows in my 2d Game</title>
       <link>http://mattgreer.org/articles/dynamic-lighting-and-shadows/</link>
