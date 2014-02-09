@@ -1,0 +1,55 @@
+%%%%% OUTLINE %%%%%
+
+
+INTRO
+-- very quick intro about promises
+
+REPLACING CALLBACKS
+-- convert a callback to a promise
+
+-- super simple "promise" implementation that only supports one then() call
+
+-- demo of usage
+
+PROMISE CHAINING
+foo().then(bar).then(baz)
+
+versus
+
+p = foo()
+p.then(bar)
+p.then(baz)
+
+PROMISES RETURNING PROMISES
+foo().then(function() {
+ return bar()
+});
+
+ONLY RESOLVE OR REJECT ONCE
+
+DEALING WITH REJECTION
+-- why promises can swallow errors
+	-- how to get around
+
+
+PROMISE COMPOSITION
+all()
+spread()
+nodeify()
+
+
+
+things to shoot for
+-- why does promise resolution have to be async?
+	-- examples of when it fails (like Deft)
+
+-- the power of capturing a future value in an object
+	-- look to Accelerated C++ quote about concepts as classes
+
+-- final implementation in this article should pass the promise tests
+
+-- link to spec
+-- link to promise tests
+-- link to promise.js
+
+-- talk about generators???

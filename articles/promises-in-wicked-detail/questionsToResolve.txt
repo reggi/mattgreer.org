@@ -1,0 +1,7 @@
+why does handle() end with resolve(), doesn't it need to reject() sometimes?
+
+why is it required to resolve in a new stack?
+ -- when does this bite you if your implementation doesn't do it?
+
+
+
