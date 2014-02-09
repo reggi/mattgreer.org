@@ -220,7 +220,7 @@ promise.then(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword
 });&lt;/code&gt;&lt;/pre&gt;
 &lt;p&gt;The &lt;code&gt;promise&lt;/code&gt; object stands as a representation of the result. We can pass it around, store it, use it as many times as we need, etc. &lt;/p&gt;
 &lt;h2 id=&quot;chaining-promises&quot;&gt;Chaining Promises&lt;/h2&gt;
-&lt;p&gt;Since Promises capture the notion of asynchronicity in an object, we can, chain them, map them, have them run in parallel or sequential, all kinds of useful things. Code like this is very common with Promises:&lt;/p&gt;
+&lt;p&gt;Since Promises capture the notion of asynchronicity in an object, we can chain them, map them, have them run in parallel or sequential, all kinds of useful things. Code like the following is very common with Promises&lt;/p&gt;
 &lt;pre&gt;&lt;code class=&quot;lang-javascript&quot;&gt;getSomeData()
 .then(filterTheData)
 .then(processTheData)
@@ -486,7 +486,7 @@ When using Promises, it’s very easy to omit the error callback. But if you do,
 &lt;/div&gt;
 
 &lt;h3 id=&quot;unexpected-errors-should-also-lead-to-rejection&quot;&gt;Unexpected Errors Should Also Lead to Rejection&lt;/h3&gt;
-&lt;p&gt;So far our error handling only accounts for known errors. It’s possible an unhandled exception will happen, completely ruining everything. It’s essential that the Promise implementation catches those exceptions and reject accordingly.&lt;/p&gt;
+&lt;p&gt;So far our error handling only accounts for known errors. It’s possible an unhandled exception will happen, completely ruining everything. It’s essential that the Promise implementation catch these exceptions and reject accordingly.&lt;/p&gt;
 &lt;p&gt;This means that &lt;code&gt;resolve()&lt;/code&gt; should get wrapped in a try/catch block&lt;/p&gt;
 &lt;pre&gt;&lt;code class=&quot;lang-javascript&quot;&gt;&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;title&quot;&gt;resolve&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(newValue)&lt;/span&gt; {&lt;/span&gt;
   &lt;span class=&quot;keyword&quot;&gt;try&lt;/span&gt; {

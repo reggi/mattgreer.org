@@ -240,7 +240,7 @@ promise.then(<span class="function"><span class="keyword">function</span><span c
 });</code></pre>
 <p>The <code>promise</code> object stands as a representation of the result. We can pass it around, store it, use it as many times as we need, etc. </p>
 <h2 id="chaining-promises">Chaining Promises</h2>
-<p>Since Promises capture the notion of asynchronicity in an object, we can, chain them, map them, have them run in parallel or sequential, all kinds of useful things. Code like this is very common with Promises:</p>
+<p>Since Promises capture the notion of asynchronicity in an object, we can chain them, map them, have them run in parallel or sequential, all kinds of useful things. Code like the following is very common with Promises</p>
 <pre><code class="lang-javascript">getSomeData()
 .then(filterTheData)
 .then(processTheData)
@@ -506,7 +506,7 @@ When using Promises, it’s very easy to omit the error callback. But if you do,
 </div>
 
 <h3 id="unexpected-errors-should-also-lead-to-rejection">Unexpected Errors Should Also Lead to Rejection</h3>
-<p>So far our error handling only accounts for known errors. It’s possible an unhandled exception will happen, completely ruining everything. It’s essential that the Promise implementation catches those exceptions and reject accordingly.</p>
+<p>So far our error handling only accounts for known errors. It’s possible an unhandled exception will happen, completely ruining everything. It’s essential that the Promise implementation catch these exceptions and reject accordingly.</p>
 <p>This means that <code>resolve()</code> should get wrapped in a try/catch block</p>
 <pre><code class="lang-javascript"><span class="function"><span class="keyword">function</span> <span class="title">resolve</span><span class="params">(newValue)</span> {</span>
   <span class="keyword">try</span> {
