@@ -294,7 +294,7 @@ promise.then(<span class="function"><span class="keyword">function</span><span c
 <p><a class="fiddle" target="_blank" href="http://jsfiddle.net/city41/HdzLv/1/">fiddle</a></p>
 <p>Hoo, it’s getting a little squirrelly. Aren’t you glad we’re building this up slowly? The real key here is that <code>then()</code> is returning a new Promise. </p>
 <div class="callout pitfall">
-Since <code>then()</code> always returns a new Promise object, there will always be at least one Promise object that gets created, resolved and then ignored. Which can be seen as waistful. The callback approach does not have this problem. Another ding against Promises. You can start to appreciate why some in the JavaScript community have shunned them.
+Since <code>then()</code> always returns a new Promise object, there will always be at least one Promise object that gets created, resolved and then ignored. Which can be seen as wasteful. The callback approach does not have this problem. Another ding against Promises. You can start to appreciate why some in the JavaScript community have shunned them.
 </div>
 
 <p>What value does the second Promise resolve to? <em>It receives the return value of the first promise.</em> This is happening at the bottom of <code>handle()</code>, The <code>handler</code> object carries around both an <code>onResolved</code> callback as well as a reference to <code>resolve()</code>. There is more than one copy of <code>resolve()</code> floating around, each Promise gets their own copy of this function, and a closure for it to run within. This is the bridge from the first Promise to the second. We are concluding the first Promise at this line:</p>
