@@ -589,7 +589,7 @@ In my experience, this is the biggest pitfall of Promises. If you read only one 
 invokeSomething();
 promise.then(wrapItAllUp);
 invokeSomethingElse();</code></pre>
-<p>What is the call flow here? Based on the naming you’d probably guess it is <code>invokeSomething -&gt; invokeSomethingElse -&gt; wrapItAllUp</code>. But this all depends on if the promise resolves synchronously or asynchronously in our current implementation. If <code>doAnOperation()</code> works asynchronously, then that is the call flow. But if it works synchronously, then the call flow is actually <code>invokeSomething -&gt; wrapItAllUp -&gt; invokeSomethingElse</code>, which is probably bad.</p>
+<p>What is the call flow here? Based on the naming you’d probably guess it is <code>invokeSomething()</code> -&gt; <code>invokeSomethingElse()</code> -&gt; <code>wrapItAllUp()</code>. But this all depends on if the promise resolves synchronously or asynchronously in our current implementation. If <code>doAnOperation()</code> works asynchronously, then that is the call flow. But if it works synchronously, then the call flow is actually <code>invokeSomething()</code> -&gt; <code>wrapItAllUp()</code> -&gt; <code>invokeSomethingElse()</code>, which is probably bad.</p>
 <p>To get around this, Promises <strong>always</strong> resolve asynchronously, even if they don’t have to. It reduces surprise and allows people to use Promises without having to take into consideration asynchronicity when reasoning about their code.</p>
 <div class="callout pitfall">
 Promises always require at least one more iteration of the event loop to resolve. This is not necessarily true of the standard callback approach.
