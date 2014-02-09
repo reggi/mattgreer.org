@@ -45,7 +45,7 @@
   }
 &lt;/style&gt;
 
-&lt;p&gt;I’ve been using promises in my JavaScript code for a while now. They can be a little brain bending at first. I now use them pretty effectively, but when it comes down to it, I don’t fully understand how they work. This article is my resolution to that. If you stick around until the end, you should understand promises very well too. &lt;/p&gt;
+&lt;p&gt;I’ve been using promises in my JavaScript code for a while now. They can be a little brain bending at first. I now use them pretty effectively, but when it came down to it, I didn’t fully understand how they work. This article is my resolution to that. If you stick around until the end, you should understand promises very well too. &lt;/p&gt;
 &lt;p&gt;We will be incrementaly creating a Promise implementation that by the end will &lt;em&gt;mostly&lt;/em&gt; meet the &lt;a href=&quot;http://promises-aplus.github.io/promises-spec/&quot;&gt;Promise/A+ spec&lt;/a&gt;, and understand how promises meet the needs of asynchronous programming along the way. This article assumes you already have some familiarity with Promises. If you don’t, &lt;a href=&quot;http://promisejs.org/&quot;&gt;promisejs.org&lt;/a&gt; is a good site to checkout.&lt;/p&gt;
 &lt;p&gt;&lt;span class=&quot;more&quot;&gt;&lt;/span&gt;&lt;/p&gt;
 &lt;h2 id=&quot;table-of-contents&quot;&gt;Table of Contents&lt;/h2&gt;
