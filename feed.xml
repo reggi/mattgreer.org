@@ -5,9 +5,585 @@
     <atom:link href="http://mattgreer.org/feed.xml" rel="self" type="application/rss+xml"></atom:link>
     <link>http://mattgreer.org</link>
     <description>Me talking about software and programming</description>
-    <pubDate>Sat, 11 Jan 2014 17:00:00 -0700</pubDate>
+    <pubDate>Sat, 08 Feb 2014 17:00:00 -0700</pubDate>
     <generator>Wintersmith - https://github.com/jnordberg/wintersmith</generator>
     <language>en</language>
+    <item>
+      <title>JavaScript Promises ... In Wicked Detail</title>
+      <link>http://mattgreer.org/articles/promises-vividly-explained/</link>
+      <pubDate>Sat, 08 Feb 2014 17:00:00 -0700</pubDate>
+      <guid isPermaLink="true">http://mattgreer.org/articles/promises-vividly-explained/</guid>
+      <author></author>
+      <description>&lt;style&gt;
+  iframe { max-width: 600px }
+
+  .callout {
+    padding: 10px;
+    margin: 20px 0;
+    max-width: 600px;
+  }
+  .wisdom {
+    background-color: #CFF7B8;
+    color: #655C6F;
+  }
+  .pitfall {
+    background-color: #EEC2C4;
+  }
+
+  .fiddle {
+    display: inline-block;
+    background-color: orange;
+    color: white;
+    margin: 10px 0;
+    padding: 5px;
+  }
+
+  .fiddle::after {
+    margin-left: 5px;
+    content: &quot;\f045&quot;;
+    font-family: FontAwesome;
+  }
+&lt;/style&gt;
+
+&lt;p&gt;I’ve been using promises in my JavaScript code for a while now. They can be a little brain bending at first. I now use them pretty effectively, but when it comes down to it, I don’t fully understand how they work. This article is my resolution to that. If you stick around until the end, you should understand promises very well too. &lt;/p&gt;
+&lt;p&gt;We will be incrementaly creating a Promise implementation that by the end will &lt;em&gt;mostly&lt;/em&gt; meet the &lt;a href=&quot;http://promises-aplus.github.io/promises-spec/&quot;&gt;Promise/A+ spec&lt;/a&gt;, and understand how promises meet the needs of asynchronous programming along the way. This article assumes you already have some familiarity with Promises. If you don’t, &lt;a href=&quot;http://promisejs.org/&quot;&gt;promisejs.org&lt;/a&gt; is a good site to checkout.&lt;/p&gt;
+&lt;p&gt;&lt;span class=&quot;more&quot;&gt;&lt;/span&gt;&lt;/p&gt;
+&lt;h2 id=&quot;table-of-contents&quot;&gt;Table of Contents&lt;/h2&gt;
+&lt;ol&gt;
+  &lt;li&gt;&lt;a href=&quot;#why-&quot;&gt;Why?&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#the-simplest-use-case&quot;&gt;The Simplest Use Case&lt;/a&gt;
+    &lt;ul&gt;
+      &lt;li&gt;&lt;a href=&quot;#defining-the-promise-type&quot;&gt;Defining the Promise type&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#this-code-is-brittle-and-bad&quot;&gt;This Code is Brittle and Bad&lt;/a&gt;&lt;/li&gt;
+      &lt;/ul&gt;
+   &lt;/li&gt;
+   &lt;li&gt;&lt;a href=&quot;#promises-have-state&quot;&gt;Promises have State&lt;/a&gt;&lt;/li&gt;
+   &lt;li&gt;&lt;a href=&quot;#chaining-promises&quot;&gt;Chaining Promises&lt;/a&gt;
+     &lt;ul&gt;
+       &lt;li&gt;&lt;a href=&quot;#returning-promises-inside-the-chain&quot;&gt;Returning Promises Inside the Chain&lt;/a&gt;&lt;/li&gt;
+    &lt;/li&gt;
+    &lt;/ul&gt;
+    &lt;/li&gt;
+   &lt;li&gt;&lt;a href=&quot;#rejecting-promises&quot;&gt;Rejecting Promises&lt;/a&gt;
+   &lt;ul&gt;
+     &lt;li&gt;&lt;a href=&quot;#unexpected-errors-should-also-lead-to-rejection&quot;&gt;Unexpected Errors Should Also Lead to Rejection&lt;/a&gt;&lt;/li&gt;
+     &lt;li&gt;&lt;a href=&quot;#promises-can-swallow-errors-&quot;&gt;Promises Can Swallow Errors!&lt;/a&gt;&lt;/li&gt;
+   &lt;/ul&gt;
+   &lt;/li&gt;
+   &lt;li&gt;&lt;a href=&quot;#promise-resolution-needs-to-be-async&quot;&gt;Promise Resolution Needs to be Async&lt;/a&gt;
+   &lt;ul&gt;
+     &lt;li&gt;&lt;a href=&quot;#why-is-this-async-requirement-in-the-spec-&quot;&gt;Why is this Async Requirement in the Spec?&lt;/a&gt;
+     &lt;/li&gt;
+   &lt;/ul&gt;
+   &lt;/li&gt;
+   &lt;li&gt;&lt;a href=&quot;#before-we-wrap-up-then-promise&quot;&gt;Before We Wrap Up … then/promise&lt;/a&gt;&lt;/li&gt;
+   &lt;li&gt;&lt;a href=&quot;#conclusion&quot;&gt;Conclusion&lt;/a&gt;&lt;/li&gt;
+
+&lt;/ol&gt;
+
+&lt;h2 id=&quot;why-&quot;&gt;Why?&lt;/h2&gt;
+&lt;p&gt;Why bother to understand Promises to this level of detail? Really understanding how something works can increase your ability to take advantage of it, and debug it more successfully when things go wrong. I was inspired to write this article when a coworker and I got stumped on a tricky Promise scenario. Had I known then what I know now, we wouldn’t have gotten stumped.&lt;/p&gt;
+&lt;h2 id=&quot;the-simplest-use-case&quot;&gt;The Simplest Use Case&lt;/h2&gt;
+&lt;p&gt;Let’s begin our Promise implementation as simple as can be. We want to go from this&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;lang-javascript&quot;&gt;doSomething(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(value)&lt;/span&gt; {&lt;/span&gt;
+  console.log(&lt;span class=&quot;string&quot;&gt;'Got a value:'&lt;/span&gt; value);
+});&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;to this&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;lang-javascript&quot;&gt;doSomething().then(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(value)&lt;/span&gt; {&lt;/span&gt;
+  console.log(&lt;span class=&quot;string&quot;&gt;'Got a value:'&lt;/span&gt; value);
+});&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;To do this, we just need to change &lt;code&gt;doSomething()&lt;/code&gt; from this&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;lang-javascript&quot;&gt;&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;title&quot;&gt;doSomething&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(callback)&lt;/span&gt; {&lt;/span&gt;
+  &lt;span class=&quot;keyword&quot;&gt;var&lt;/span&gt; value = &lt;span class=&quot;number&quot;&gt;42&lt;/span&gt;;
+  callback(value);
+}&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;to this “Promise” based solution&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;lang-javascript&quot;&gt;&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;title&quot;&gt;doSomething&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;()&lt;/span&gt; {&lt;/span&gt;
+  &lt;span class=&quot;keyword&quot;&gt;return&lt;/span&gt; {
+    then: &lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(callback)&lt;/span&gt; {&lt;/span&gt;
+      &lt;span class=&quot;keyword&quot;&gt;var&lt;/span&gt; value = &lt;span class=&quot;number&quot;&gt;42&lt;/span&gt;;
+      callback(value);
+    }
+  };
+}&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;a class=&quot;fiddle&quot; target=&quot;_blank&quot; href=&quot;http://jsfiddle.net/city41/zdgrC/1/&quot;&gt;fiddle&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;This is just a little sugar for the callback pattern. It’s pretty pointless sugar so far. But it’s a start and yet we’ve already hit upon a core idea behind Promises&lt;/p&gt;
+&lt;div class=&quot;callout wisdom&quot;&gt;
+Promises capture the notion of an eventual value into an object
+&lt;/div&gt;
+
+&lt;p&gt;This is the main reason Promises are so interesting. Once the concept of eventuality is captured like this, we can begin to do some very powerful things. We’ll explore this more later on.&lt;/p&gt;
+&lt;h3 id=&quot;defining-the-promise-type&quot;&gt;Defining the Promise type&lt;/h3&gt;
+&lt;p&gt;This simple object literal isn’t going to hold up. Let’s define an actual &lt;code&gt;Promise&lt;/code&gt; type that we’ll be able to expand upon&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;lang-javascript&quot;&gt;&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;title&quot;&gt;Promise&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(fn)&lt;/span&gt; {&lt;/span&gt;
+  &lt;span class=&quot;keyword&quot;&gt;var&lt;/span&gt; callback = &lt;span class=&quot;literal&quot;&gt;null&lt;/span&gt;;
+  &lt;span class=&quot;keyword&quot;&gt;this&lt;/span&gt;.then = &lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(cb)&lt;/span&gt; {&lt;/span&gt;
+    callback = cb;
+  };
+
+  &lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;title&quot;&gt;resolve&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(value)&lt;/span&gt; {&lt;/span&gt;
+    callback(value);
+  }
+
+  fn(resolve);
+}&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;and reimplement &lt;code&gt;doSomething()&lt;/code&gt; to use it&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;lang-javascript&quot;&gt;&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;title&quot;&gt;doSomething&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;()&lt;/span&gt; {&lt;/span&gt;
+  &lt;span class=&quot;keyword&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;keyword&quot;&gt;new&lt;/span&gt; Promise(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(resolve)&lt;/span&gt; {&lt;/span&gt;
+    &lt;span class=&quot;keyword&quot;&gt;var&lt;/span&gt; value = &lt;span class=&quot;number&quot;&gt;42&lt;/span&gt;;
+    resolve(value);
+  });
+}&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;There is a problem here. If you trace through the execution, you’ll see that &lt;code&gt;resolve()&lt;/code&gt; gets called before &lt;code&gt;then()&lt;/code&gt;, which means &lt;code&gt;callback&lt;/code&gt; will be &lt;code&gt;null&lt;/code&gt;. Let’s hide this problem in a little hack involving &lt;code&gt;setTimeout&lt;/code&gt;&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;lang-javascript&quot;&gt;&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;title&quot;&gt;Promise&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(fn)&lt;/span&gt; {&lt;/span&gt;
+  &lt;span class=&quot;keyword&quot;&gt;var&lt;/span&gt; callback = &lt;span class=&quot;literal&quot;&gt;null&lt;/span&gt;;
+  &lt;span class=&quot;keyword&quot;&gt;this&lt;/span&gt;.then = &lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(cb)&lt;/span&gt; {&lt;/span&gt;
+    callback = cb;
+  };
+
+  &lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;title&quot;&gt;resolve&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(value)&lt;/span&gt; {&lt;/span&gt;
+    &lt;span class=&quot;comment&quot;&gt;// force callback to be called in the next&lt;/span&gt;
+    &lt;span class=&quot;comment&quot;&gt;// iteration of the event loop, giving&lt;/span&gt;
+    &lt;span class=&quot;comment&quot;&gt;// callback a chance to be set by then()&lt;/span&gt;
+    setTimeout(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;()&lt;/span&gt; {&lt;/span&gt;
+      callback(value);
+    }, &lt;span class=&quot;number&quot;&gt;1&lt;/span&gt;);
+  }
+
+  fn(resolve);
+}&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;a class=&quot;fiddle&quot; target=&quot;_blank&quot; href=&quot;http://jsfiddle.net/city41/uQrza/1/&quot;&gt;fiddle&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;With the hack in place, this code now works … sort of.&lt;/p&gt;
+&lt;h3 id=&quot;this-code-is-brittle-and-bad&quot;&gt;This Code is Brittle and Bad&lt;/h3&gt;
+&lt;p&gt;Our naive, poor Promise implementation must use asynchronicity to work. It’s easy to make it fail again, just call &lt;code&gt;then()&lt;/code&gt; asynchronously and we are right back to the callback being &lt;code&gt;null&lt;/code&gt; again. Why am I setting you up for failure so soon? Because the above implementation has the advantage of being pretty easy to wrap your head around. &lt;code&gt;then()&lt;/code&gt; and &lt;code&gt;resolve()&lt;/code&gt; won’t go away. They are key concepts in Promises.&lt;/p&gt;
+&lt;h2 id=&quot;promises-have-state&quot;&gt;Promises have State&lt;/h2&gt;
+&lt;p&gt;Our brittle code above revealed something unexpectedly. Promises have state. We need to know what state they are in before proceeding, and make sure we move through the states correctly. Doing so gets rid of the brittleness. &lt;/p&gt;
+&lt;div class=&quot; callout wisdom&quot;&gt;
+&lt;ul&gt;
+&lt;li&gt;A Promise can be &lt;strong&gt;pending&lt;/strong&gt; waiting for a value, or &lt;strong&gt;resolved&lt;/strong&gt; with a value. 
+&lt;li&gt;Once a Promise resolves to a value, it will always remain at that value and never resolve again.
+&lt;/ul&gt;
+&lt;/div&gt;
+
+&lt;p&gt;&lt;em&gt;(A Promise can also be rejected, but we’ll get to error handling later)&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;Let’s explicitly track the state inside of our implementation, which will allow us to do away with our hack&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;lang-javascript&quot;&gt;&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;title&quot;&gt;Promise&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(fn)&lt;/span&gt; {&lt;/span&gt;
+  &lt;span class=&quot;keyword&quot;&gt;var&lt;/span&gt; state = &lt;span class=&quot;string&quot;&gt;'pending'&lt;/span&gt;;
+  &lt;span class=&quot;keyword&quot;&gt;var&lt;/span&gt; value;
+  &lt;span class=&quot;keyword&quot;&gt;var&lt;/span&gt; deferred;
+
+  &lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;title&quot;&gt;resolve&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(newValue)&lt;/span&gt; {&lt;/span&gt;
+    value = newValue;
+    state = &lt;span class=&quot;string&quot;&gt;'resolved'&lt;/span&gt;;
+
+    &lt;span class=&quot;keyword&quot;&gt;if&lt;/span&gt;(deferred) {
+      handle(deferred);
+    }
+  }
+
+  &lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;title&quot;&gt;handle&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(onResolved)&lt;/span&gt; {&lt;/span&gt;
+    &lt;span class=&quot;keyword&quot;&gt;if&lt;/span&gt;(state === &lt;span class=&quot;string&quot;&gt;'pending'&lt;/span&gt;) {
+      deferred = onResolved;
+      &lt;span class=&quot;keyword&quot;&gt;return&lt;/span&gt;;
+    }
+
+    onResolved(value);
+  }
+
+  &lt;span class=&quot;keyword&quot;&gt;this&lt;/span&gt;.then = &lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(onResolved)&lt;/span&gt; {&lt;/span&gt;
+    handle(onResolved);
+  };
+
+  fn(resolve);
+}&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;a class=&quot;fiddle&quot; target=&quot;_blank&quot; href=&quot;http://jsfiddle.net/city41/QX85J/1/&quot;&gt;fiddle&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;It’s getting more complicated, but the caller can invoke &lt;code&gt;then()&lt;/code&gt; whenever they want, and the callee can invoke &lt;code&gt;resolve()&lt;/code&gt; whenever they want. It fully works with synchronous or asynchronous code.&lt;/p&gt;
+&lt;p&gt;This is because of the &lt;code&gt;state&lt;/code&gt; flag. Both &lt;code&gt;then()&lt;/code&gt; and &lt;code&gt;resolve()&lt;/code&gt; hand off to the new method &lt;code&gt;handle()&lt;/code&gt;, which will do one of two things depending on the situation:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;The caller has called &lt;code&gt;then()&lt;/code&gt; before the callee calls &lt;code&gt;resolve()&lt;/code&gt;, that means there is no value ready to hand back. In this case the state will be pending, and so we hold onto the caller’s callback to use later. Later when &lt;code&gt;resolve()&lt;/code&gt; gets called, we can then invoke the callback and send the value on its way.&lt;/li&gt;
+&lt;li&gt;The callee calls &lt;code&gt;resolve()&lt;/code&gt; before the caller calls &lt;code&gt;then()&lt;/code&gt;: In this case we hold onto the resulting value. Once &lt;code&gt;then()&lt;/code&gt; gets called, we are ready to hand back the value.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Notice &lt;code&gt;setTimeout&lt;/code&gt; went away? That’s temporary, it will be coming back. But one thing at a time.&lt;/p&gt;
+&lt;div class=&quot;callout wisdom&quot;&gt;
+With Promises, the order in which we work with them doesn’t matter. We are free to call &lt;code&gt;then()&lt;/code&gt; and &lt;code&gt;resolve()&lt;/code&gt; whenever they suit our purposes. This is one of the powerful advantages of capturing the notion of eventual results into an object
+&lt;/div&gt;
+
+&lt;p&gt;We still have quite a few more things in the spec to implement, but our Promises are already pretty powerful. This system allows us to call &lt;code&gt;then()&lt;/code&gt; as many times as we want, we will always get the same value back&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;lang-javascript&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;var&lt;/span&gt; promise = doSomething();
+
+promise.then(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(value)&lt;/span&gt; {&lt;/span&gt;
+  console.log(&lt;span class=&quot;string&quot;&gt;'Got a value:'&lt;/span&gt;, value);
+});
+
+promise.then(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(value)&lt;/span&gt; {&lt;/span&gt;
+  console.log(&lt;span class=&quot;string&quot;&gt;'Got the same value again:'&lt;/span&gt;, value);
+});&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The &lt;code&gt;promise&lt;/code&gt; object stands as a representation of the result. We can pass it around, store it, use it as many times as we need, etc. &lt;/p&gt;
+&lt;h2 id=&quot;chaining-promises&quot;&gt;Chaining Promises&lt;/h2&gt;
+&lt;p&gt;Since Promises capture the notion of asynchronicity in an object, we can, chain them, map them, have them run in parallel or sequential, all kinds of useful things. Code like this is very common with Promises:&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;lang-javascript&quot;&gt;getSomeData()
+.then(filterTheData)
+.then(processTheData)
+.then(displayTheData);&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;code&gt;getSomeData&lt;/code&gt; is returning a Promise, as evidenced by the call to &lt;code&gt;then()&lt;/code&gt;, but the result of that first then must also be a Promise, as we call &lt;code&gt;then()&lt;/code&gt; again (and yet again!) That’s exactly what happens, if we can convince &lt;code&gt;then()&lt;/code&gt; to return a Promise, things get more interesting.&lt;/p&gt;
+&lt;div class=&quot;callout wisdom&quot;&gt;
+&lt;code&gt;then()&lt;/code&gt; always returns a Promise
+&lt;/div&gt;
+
+&lt;p&gt;Here is our Promise type with chaining added in&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;lang-javascript&quot;&gt;&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;title&quot;&gt;Promise&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(fn)&lt;/span&gt; {&lt;/span&gt;
+  &lt;span class=&quot;keyword&quot;&gt;var&lt;/span&gt; state = &lt;span class=&quot;string&quot;&gt;'pending'&lt;/span&gt;;
+  &lt;span class=&quot;keyword&quot;&gt;var&lt;/span&gt; value;
+  &lt;span class=&quot;keyword&quot;&gt;var&lt;/span&gt; deferred = &lt;span class=&quot;literal&quot;&gt;null&lt;/span&gt;;
+
+  &lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;title&quot;&gt;resolve&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(newValue)&lt;/span&gt; {&lt;/span&gt;
+    value = newValue;
+    state = &lt;span class=&quot;string&quot;&gt;'resolved'&lt;/span&gt;;
+
+    &lt;span class=&quot;keyword&quot;&gt;if&lt;/span&gt;(deferred) {
+      handle(deferred);
+    }
+  }
+
+  &lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;title&quot;&gt;handle&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(handler)&lt;/span&gt; {&lt;/span&gt;
+    &lt;span class=&quot;keyword&quot;&gt;if&lt;/span&gt;(state === &lt;span class=&quot;string&quot;&gt;'pending'&lt;/span&gt;) {
+      deferred = handler;
+      &lt;span class=&quot;keyword&quot;&gt;return&lt;/span&gt;;
+    }
+
+    &lt;span class=&quot;keyword&quot;&gt;if&lt;/span&gt;(handler.onResolved === &lt;span class=&quot;literal&quot;&gt;null&lt;/span&gt;) {
+      handler.resolve(value);
+      &lt;span class=&quot;keyword&quot;&gt;return&lt;/span&gt;;
+    }
+
+    &lt;span class=&quot;keyword&quot;&gt;var&lt;/span&gt; ret = handler.onResolved(value);
+    handler.resolve(ret);
+  }
+
+  &lt;span class=&quot;keyword&quot;&gt;this&lt;/span&gt;.then = &lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(onResolved)&lt;/span&gt; {&lt;/span&gt;
+    &lt;span class=&quot;keyword&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;keyword&quot;&gt;new&lt;/span&gt; Promise(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(resolve)&lt;/span&gt; {&lt;/span&gt;
+      handle({
+        onResolved: onResolved,
+        resolve: resolve
+      });
+    });
+  };
+
+  fn(resolve);
+}&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;a class=&quot;fiddle&quot; target=&quot;_blank&quot; href=&quot;http://jsfiddle.net/city41/HdzLv/1/&quot;&gt;fiddle&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;Hoo, it’s getting a little squirrelly. Aren’t you glad we’re building this up slowly? The real key here is that &lt;code&gt;then()&lt;/code&gt; is returning a new Promise. &lt;/p&gt;
+&lt;div class=&quot;callout pitfall&quot;&gt;
+Since &lt;code&gt;then()&lt;/code&gt; always returns a new Promise object, there will always be at least one Promise object that gets created, resolved and then ignored. Which can be seen as waistful. The callback approach does not have this problem. Another ding against Promises. You can start to appreciate why some in the JavaScript community have shunned them.
+&lt;/div&gt;
+
+&lt;p&gt;What value does the second Promise resolve to? &lt;em&gt;It receives the return value of the first promise.&lt;/em&gt; This is happening at the bottom of &lt;code&gt;handle()&lt;/code&gt;, The &lt;code&gt;handler&lt;/code&gt; object carries around both an &lt;code&gt;onResolved&lt;/code&gt; callback as well as a reference to &lt;code&gt;resolve()&lt;/code&gt;. There is more than one copy of &lt;code&gt;resolve()&lt;/code&gt; floating around, each Promise gets their own copy of this function, and a closure for it to run within. This is the bridge from the first Promise to the second. We are concluding the first Promise at this line:&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;lang-javascript&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;var&lt;/span&gt; ret = handler.onResolved(value);&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;In the examples I’ve been using here, &lt;code&gt;handler.onResolved&lt;/code&gt; is&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;lang-javascript&quot;&gt;&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(value)&lt;/span&gt; {&lt;/span&gt;
+  console.log(&lt;span class=&quot;string&quot;&gt;&quot;Got a value:&quot;&lt;/span&gt;, value);
+}&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;in other words, it’s what was passed into the first call to &lt;code&gt;then()&lt;/code&gt;. The return value of that first handler is used to resolve the second Promise. Thus chaining is accomplished&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;lang-javascript&quot;&gt;doSomething().then(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(result)&lt;/span&gt; {&lt;/span&gt;
+  console.log(&lt;span class=&quot;string&quot;&gt;'first result'&lt;/span&gt;, result);
+  &lt;span class=&quot;keyword&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;number&quot;&gt;88&lt;/span&gt;;
+}).then(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(secondResult)&lt;/span&gt; {&lt;/span&gt;
+  console.log(&lt;span class=&quot;string&quot;&gt;'second result'&lt;/span&gt;, secondResult);
+});
+
+&lt;span class=&quot;comment&quot;&gt;// the output is&lt;/span&gt;
+&lt;span class=&quot;comment&quot;&gt;//&lt;/span&gt;
+&lt;span class=&quot;comment&quot;&gt;// first result 42&lt;/span&gt;
+&lt;span class=&quot;comment&quot;&gt;// second result 88&lt;/span&gt;
+
+
+doSomething().then(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(result)&lt;/span&gt; {&lt;/span&gt;
+  console.log(&lt;span class=&quot;string&quot;&gt;'first result'&lt;/span&gt;, result);
+  &lt;span class=&quot;comment&quot;&gt;// not explicitly returning anything&lt;/span&gt;
+}).then(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(secondResult)&lt;/span&gt; {&lt;/span&gt;
+  console.log(&lt;span class=&quot;string&quot;&gt;'second result'&lt;/span&gt;, secondResult);
+});
+
+&lt;span class=&quot;comment&quot;&gt;// now the output is&lt;/span&gt;
+&lt;span class=&quot;comment&quot;&gt;//&lt;/span&gt;
+&lt;span class=&quot;comment&quot;&gt;// first result 42&lt;/span&gt;
+&lt;span class=&quot;comment&quot;&gt;// second result undefined&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Since &lt;code&gt;then()&lt;/code&gt; always returns a new Promise, this chaining can go as deep as we like&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;lang-javascript&quot;&gt;doSomething().then(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(result)&lt;/span&gt; {&lt;/span&gt;
+  console.log(&lt;span class=&quot;string&quot;&gt;'first result'&lt;/span&gt;, result);
+  &lt;span class=&quot;keyword&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;number&quot;&gt;88&lt;/span&gt;;
+}).then(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(secondResult)&lt;/span&gt; {&lt;/span&gt;
+  console.log(&lt;span class=&quot;string&quot;&gt;'second result'&lt;/span&gt;, secondResult);
+  &lt;span class=&quot;keyword&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;number&quot;&gt;99&lt;/span&gt;;
+}).then(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(thirdResult)&lt;/span&gt; {&lt;/span&gt;
+  console.log(&lt;span class=&quot;string&quot;&gt;'third result'&lt;/span&gt;, thirdResult);
+  &lt;span class=&quot;keyword&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;number&quot;&gt;200&lt;/span&gt;;
+}).then(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(fourthResult)&lt;/span&gt; {&lt;/span&gt;
+  &lt;span class=&quot;comment&quot;&gt;// on and on...&lt;/span&gt;
+});&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;What if in the above example, we wanted all the results in the end? With chaining, we would need to manually build up the result ourself&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;lang-javascript&quot;&gt;doSomething().then(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(result)&lt;/span&gt; {&lt;/span&gt;
+  &lt;span class=&quot;keyword&quot;&gt;var&lt;/span&gt; results = [result];
+  results.push(&lt;span class=&quot;number&quot;&gt;88&lt;/span&gt;);
+  &lt;span class=&quot;keyword&quot;&gt;return&lt;/span&gt; results;
+}).then(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(results)&lt;/span&gt; {&lt;/span&gt;
+  results.push(&lt;span class=&quot;number&quot;&gt;99&lt;/span&gt;);
+  &lt;span class=&quot;keyword&quot;&gt;return&lt;/span&gt; results;
+}).then(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(results)&lt;/span&gt; {&lt;/span&gt;
+  console.log(results.join(&lt;span class=&quot;string&quot;&gt;', '&lt;/span&gt;);
+});
+
+&lt;span class=&quot;comment&quot;&gt;// the output is&lt;/span&gt;
+&lt;span class=&quot;comment&quot;&gt;//&lt;/span&gt;
+&lt;span class=&quot;comment&quot;&gt;// [42, 88, 99]&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;
+&lt;div class=&quot;callout wisdom&quot;&gt;
+  Promises always resolve to one value. If you need to pass more than one value along, you need to create a multi-value in some fashion (an array, an object, concatting strings, etc)
+&lt;/div&gt;
+
+&lt;p&gt;A potentially better way is to use a Promise library’s &lt;code&gt;all()&lt;/code&gt; method or any number of other utility methods that increase the usefulness of Promises, which I’ll leave to you to go and discover. &lt;/p&gt;
+&lt;h3 id=&quot;returning-promises-inside-the-chain&quot;&gt;Returning Promises Inside the Chain&lt;/h3&gt;
+&lt;p&gt;Our chaining implementation is a bit naive. It’s blindly passing the resolved values down the line. What if one of the resolved values is a Promise? For example&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;lang-javascript&quot;&gt;doSomething().then(result) {
+  &lt;span class=&quot;comment&quot;&gt;// doSomethingElse returns a Promise&lt;/span&gt;
+  &lt;span class=&quot;keyword&quot;&gt;return&lt;/span&gt; doSomethingElse(result)
+}.then(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(finalResult)&lt;/span&gt; {&lt;/span&gt;
+  console.log(&lt;span class=&quot;string&quot;&gt;&quot;the final result is&quot;&lt;/span&gt;, finalResult);
+});&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;As it stands now, the above won’t do what we want. &lt;code&gt;finalResult&lt;/code&gt; won’t actually be a fully resolved value, it will instead be a Promise. To get the intended result, we’d need to do&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;lang-javascript&quot;&gt;doSomething().then(result) {
+  &lt;span class=&quot;comment&quot;&gt;// doSomethingElse returns a Promise&lt;/span&gt;
+  &lt;span class=&quot;keyword&quot;&gt;return&lt;/span&gt; doSomethingElse(result)
+}.then(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(anotherPromise)&lt;/span&gt; {&lt;/span&gt;
+  anotherPromise.then(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(finalResult)&lt;/span&gt; {&lt;/span&gt;
+    console.log(&lt;span class=&quot;string&quot;&gt;&quot;the final result is&quot;&lt;/span&gt;, finalResult);
+  });
+});&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Who wants that crud in their code? Let’s have the Promise implementation seemlessly handle this for us. This is simple to do, inside of &lt;code&gt;resolve()&lt;/code&gt; just add a special case if the resolved value is a Promise&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;lang-javascript&quot;&gt;&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;title&quot;&gt;resolve&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(newValue)&lt;/span&gt; {&lt;/span&gt;
+  &lt;span class=&quot;keyword&quot;&gt;if&lt;/span&gt;(newValue &amp;amp;&amp;amp; &lt;span class=&quot;keyword&quot;&gt;typeof&lt;/span&gt; newValue.then === &lt;span class=&quot;string&quot;&gt;'function'&lt;/span&gt;) {
+    newValue.then(resolve);
+    &lt;span class=&quot;keyword&quot;&gt;return&lt;/span&gt;;
+  }
+  state = &lt;span class=&quot;string&quot;&gt;'resolved'&lt;/span&gt;;
+  value = newValue;
+
+  &lt;span class=&quot;keyword&quot;&gt;if&lt;/span&gt;(deferred) {
+    handle(deferred);
+  }
+}&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;a class=&quot;fiddle&quot; target=&quot;_blank&quot; href=&quot;http://jsfiddle.net/city41/38CCb/1/&quot;&gt;fiddle&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;We’ll keep calling &lt;code&gt;resolve()&lt;/code&gt; recursively as long as we get a Promise back. Once it’s no longer a Promise, then proceed as before.&lt;/p&gt;
+&lt;div class=&quot;callout pitfall&quot;&gt;
+It &lt;em&gt;is&lt;/em&gt; possible for this to be an infinite loop. The Promise/A+ spec recommends implementations detect infinite loops, but it’s not required.
+&lt;/div&gt;
+
+&lt;div class=&quot;callout pitfall&quot;&gt;
+Also worth pointing out, this implementation does not meet the spec. Nor will we fully meet the spec in this regard in the article. For the more curious, I recommend reading the &lt;a href=&quot;http://promises-aplus.github.io/promises-spec/#the_promise_resolution_procedure&quot;&gt;Promise resolution procedure&lt;/a&gt; from the spec for some finer points I am leaving out
+&lt;/div&gt;
+
+&lt;p&gt;Notice how loose the check is to see if &lt;code&gt;newValue&lt;/code&gt; is a Promise? We are only looking for a &lt;code&gt;then()&lt;/code&gt; method. This duck typing is intentional, it allows different Promise implementations to interopt with each other. It’s actually quite common for Promise libraries to intermingle, as different third party libraries you use can each use different Promise implementations.&lt;/p&gt;
+&lt;div class=&quot;callout wisdom&quot;&gt;
+Different Promise implementations can interopt with each other, as long as they all are following the spec properly.
+&lt;/div&gt;
+
+&lt;p&gt;With chaining in place, our implementation is pretty complete. But we’ve completely ignored error handling.&lt;/p&gt;
+&lt;h2 id=&quot;rejecting-promises&quot;&gt;Rejecting Promises&lt;/h2&gt;
+&lt;p&gt;When something goes wrong during the course of a Promise, it needs to be &lt;strong&gt;rejected&lt;/strong&gt; with a &lt;em&gt;reason&lt;/em&gt;. How does the caller know when this happens? They can find out by passing in a second callback to &lt;code&gt;then()&lt;/code&gt;&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;lang-javascript&quot;&gt;doSomething().then(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(value)&lt;/span&gt; {&lt;/span&gt;
+  console.log(&lt;span class=&quot;string&quot;&gt;'Success!'&lt;/span&gt;, value);
+}, &lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(error)&lt;/span&gt; {&lt;/span&gt;
+  console.log(&lt;span class=&quot;string&quot;&gt;'Uh oh'&lt;/span&gt;, error);
+});&lt;/code&gt;&lt;/pre&gt;
+&lt;div class=&quot;callout wisdom&quot;&gt;
+As mentioned earlier, the Promise will transition from &lt;strong&gt;pending&lt;/strong&gt; to either &lt;strong&gt;resolved&lt;/strong&gt; or &lt;strong&gt;rejected&lt;/strong&gt;, never both. In other words, only one of the above callbacks ever gets called.
+&lt;/div&gt;
+
+&lt;p&gt;Promises enable rejection by means of &lt;code&gt;reject()&lt;/code&gt;, the evil twin of &lt;code&gt;resolve()&lt;/code&gt;. Here is &lt;code&gt;doSomething()&lt;/code&gt; with error handling support added&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;lang-javascript&quot;&gt;&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;title&quot;&gt;doSomething&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;()&lt;/span&gt; {&lt;/span&gt;
+  &lt;span class=&quot;keyword&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;keyword&quot;&gt;new&lt;/span&gt; Promise(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(resolve, reject)&lt;/span&gt; {&lt;/span&gt;
+    &lt;span class=&quot;keyword&quot;&gt;var&lt;/span&gt; result = somehowGetTheValue(); 
+    &lt;span class=&quot;keyword&quot;&gt;if&lt;/span&gt;(result.error) {
+      reject(result.error);
+    } &lt;span class=&quot;keyword&quot;&gt;else&lt;/span&gt; {
+      resolve(result.value);
+    }
+  });
+}&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Inside the Promise implementation, we need to account for rejection. As soon as a Promise is rejected, all downstream Promises from it also need to be rejected.&lt;/p&gt;
+&lt;p&gt;Let’s see the full Promise implementation again, this time with rejection support added&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;lang-javascript&quot;&gt;&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;title&quot;&gt;Promise&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(fn)&lt;/span&gt; {&lt;/span&gt;
+  &lt;span class=&quot;keyword&quot;&gt;var&lt;/span&gt; state = &lt;span class=&quot;string&quot;&gt;'pending'&lt;/span&gt;;
+  &lt;span class=&quot;keyword&quot;&gt;var&lt;/span&gt; value;
+  &lt;span class=&quot;keyword&quot;&gt;var&lt;/span&gt; deferred = &lt;span class=&quot;literal&quot;&gt;null&lt;/span&gt;;
+
+  &lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;title&quot;&gt;resolve&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(newValue)&lt;/span&gt; {&lt;/span&gt;
+    &lt;span class=&quot;keyword&quot;&gt;if&lt;/span&gt;(newValue &amp;amp;&amp;amp; &lt;span class=&quot;keyword&quot;&gt;typeof&lt;/span&gt; newValue.then === &lt;span class=&quot;string&quot;&gt;'function'&lt;/span&gt;) {
+      newValue.then(resolve, reject);
+      &lt;span class=&quot;keyword&quot;&gt;return&lt;/span&gt;;
+    }
+    state = &lt;span class=&quot;string&quot;&gt;'resolved'&lt;/span&gt;;
+    value = newValue;
+
+    &lt;span class=&quot;keyword&quot;&gt;if&lt;/span&gt;(deferred) {
+      handle(deferred);
+    }
+  }
+
+  &lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;title&quot;&gt;reject&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(reason)&lt;/span&gt; {&lt;/span&gt;
+    state = &lt;span class=&quot;string&quot;&gt;'rejected'&lt;/span&gt;;
+    value = reason;
+
+    &lt;span class=&quot;keyword&quot;&gt;if&lt;/span&gt;(deferred) {
+      handle(deferred);
+    }
+  }
+
+  &lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;title&quot;&gt;handle&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(handler)&lt;/span&gt; {&lt;/span&gt;
+    &lt;span class=&quot;keyword&quot;&gt;if&lt;/span&gt;(state === &lt;span class=&quot;string&quot;&gt;'pending'&lt;/span&gt;) {
+      deferred = handler;
+      &lt;span class=&quot;keyword&quot;&gt;return&lt;/span&gt;;
+    }
+
+    &lt;span class=&quot;keyword&quot;&gt;var&lt;/span&gt; handlerCallback;
+
+    &lt;span class=&quot;keyword&quot;&gt;if&lt;/span&gt;(state === &lt;span class=&quot;string&quot;&gt;'resolved'&lt;/span&gt;) {
+      handlerCallback = handler.onResolved;
+    } &lt;span class=&quot;keyword&quot;&gt;else&lt;/span&gt; {
+      handlerCallback = handler.onRejected;
+    }
+
+    &lt;span class=&quot;keyword&quot;&gt;if&lt;/span&gt;(handlerCallback === &lt;span class=&quot;literal&quot;&gt;null&lt;/span&gt;) {
+      &lt;span class=&quot;keyword&quot;&gt;if&lt;/span&gt;(state === &lt;span class=&quot;string&quot;&gt;'resolved'&lt;/span&gt;) {
+        handler.resolve(value);
+      } &lt;span class=&quot;keyword&quot;&gt;else&lt;/span&gt; {
+        handler.reject(value);
+      }
+
+      &lt;span class=&quot;keyword&quot;&gt;return&lt;/span&gt;;
+    }
+
+    &lt;span class=&quot;keyword&quot;&gt;var&lt;/span&gt; ret = handlerCallback(value);
+    handler.resolve(ret);
+  }
+
+  &lt;span class=&quot;keyword&quot;&gt;this&lt;/span&gt;.then = &lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(onResolved, onRejected)&lt;/span&gt; {&lt;/span&gt;
+    &lt;span class=&quot;keyword&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;keyword&quot;&gt;new&lt;/span&gt; Promise(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(resolve, reject)&lt;/span&gt; {&lt;/span&gt;
+      handle({
+        onResolved: onResolved,
+        onRejected: onRejected,
+        resolve: resolve,
+        reject: reject
+      });
+    });
+  };
+
+  fn(resolve, reject);
+}&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;a class=&quot;fiddle&quot; target=&quot;_blank&quot; href=&quot;http://jsfiddle.net/city41/rLXsL/1/&quot;&gt;fiddle&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;Other than the addition of &lt;code&gt;reject()&lt;/code&gt; itself, &lt;code&gt;handle()&lt;/code&gt; also has to be aware of rejection. Within &lt;code&gt;handle()&lt;/code&gt;, either the rejection path or resolve path will be taken depending on the value of &lt;code&gt;state&lt;/code&gt;. This value of &lt;code&gt;state&lt;/code&gt; gets pushed into the next Promise, because calling the next Promises’ &lt;code&gt;resolve()&lt;/code&gt; or &lt;code&gt;reject()&lt;/code&gt; sets its &lt;code&gt;state&lt;/code&gt; value accordingly.&lt;/p&gt;
+&lt;div class=&quot;callout pitfall&quot;&gt;
+When using Promises, it’s very easy to omit the error callback. But if you do, you’ll never get &lt;em&gt;any&lt;/em&gt; indication something went wrong. At the very least, the final Promise in your chain should have an error callback. See the section further down about swallowed errors for more info.
+&lt;/div&gt;
+
+&lt;h3 id=&quot;unexpected-errors-should-also-lead-to-rejection&quot;&gt;Unexpected Errors Should Also Lead to Rejection&lt;/h3&gt;
+&lt;p&gt;So far our error handling only accounts for known errors. It’s possible an unhandled exception will happen, completely ruining everything. It’s essential that the Promise implementation catches those exceptions and reject accordingly.&lt;/p&gt;
+&lt;p&gt;This means that &lt;code&gt;resolve()&lt;/code&gt; should get wrapped in a try/catch block&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;lang-javascript&quot;&gt;&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;title&quot;&gt;resolve&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(newValue)&lt;/span&gt; {&lt;/span&gt;
+  &lt;span class=&quot;keyword&quot;&gt;try&lt;/span&gt; {
+    &lt;span class=&quot;comment&quot;&gt;// ... as before&lt;/span&gt;
+  } &lt;span class=&quot;keyword&quot;&gt;catch&lt;/span&gt;(e) {
+    reject(e);
+  }
+}&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;It’s also important to make sure the callbacks given to us by the caller don’t throw unhandled exceptions. These callbacks are called in &lt;code&gt;handle()&lt;/code&gt;, so we end up with&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;lang-javascript&quot;&gt;&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;title&quot;&gt;handle&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(deferred)&lt;/span&gt; {&lt;/span&gt;
+  &lt;span class=&quot;comment&quot;&gt;// ... as before&lt;/span&gt;
+
+  &lt;span class=&quot;keyword&quot;&gt;var&lt;/span&gt; ret;
+  &lt;span class=&quot;keyword&quot;&gt;try&lt;/span&gt; {
+    ret = handlerCallback(value);
+  } &lt;span class=&quot;keyword&quot;&gt;catch&lt;/span&gt;(e) {
+    handler.reject(e);
+  }
+
+  handler.resolve(ret);
+}&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&quot;promises-can-swallow-errors-&quot;&gt;Promises can Swallow Errors!&lt;/h3&gt;
+&lt;div class=&quot;callout pitfall&quot;&gt;
+It’s possible for a misunderstanding of Promises to lead to completely swallowed errors! This trips people up a lot
+&lt;/div&gt;
+
+&lt;p&gt;Consider this example&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;lang-javascript&quot;&gt;&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;title&quot;&gt;getSomeJson&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;()&lt;/span&gt; {&lt;/span&gt;
+  &lt;span class=&quot;keyword&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;keyword&quot;&gt;new&lt;/span&gt; Promise(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(resolve, reject)&lt;/span&gt; {&lt;/span&gt;
+    &lt;span class=&quot;keyword&quot;&gt;var&lt;/span&gt; badJson = &lt;span class=&quot;string&quot;&gt;&quot;&amp;lt;div&amp;gt;uh oh, this is not JSON at all!&amp;lt;/div&amp;gt;&quot;&lt;/span&gt;;
+    resolve(badJson);
+  });
+}
+
+getSomeJson().then(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(json)&lt;/span&gt; {&lt;/span&gt;
+  &lt;span class=&quot;keyword&quot;&gt;var&lt;/span&gt; obj = JSON.parse(json);
+  console.log(obj);
+}, &lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(error)&lt;/span&gt; {&lt;/span&gt;
+  console.log(&lt;span class=&quot;string&quot;&gt;'uh oh'&lt;/span&gt;, error);
+});&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;a class=&quot;fiddle&quot; target=&quot;_blank&quot; href=&quot;http://jsfiddle.net/city41/M7SRM/1/&quot;&gt;fiddle&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;What is going to happen here? Our callback inside &lt;code&gt;then()&lt;/code&gt; is expecting some valid JSON. So it naively tries to parse it, which leads to an exception. But we have an error callback, so we’re good, right?&lt;/p&gt;
+&lt;div class=&quot;callout pitfall&quot;&gt;
+&lt;strong&gt;Nope.&lt;/strong&gt; &lt;em&gt;That error callback will not be invoked!&lt;/em&gt; If you run this example via the above fiddle, you will get no output at all. No errors, no nothing. Pure &lt;em&gt;chilling&lt;/em&gt; silence.
+&lt;/div&gt;
+
+&lt;p&gt;Why is this? Since the unhandled exception took place in our callback to &lt;code&gt;then()&lt;/code&gt;, it is being caught inside of &lt;code&gt;handle()&lt;/code&gt;. This causes &lt;code&gt;handle()&lt;/code&gt; to reject the Promise that &lt;code&gt;then()&lt;/code&gt; returned, not the Promise we are already responding to, as that Promise has already properly resolved.&lt;/p&gt;
+&lt;div class=&quot;callout wisdom&quot;&gt;
+Always remember, inside of &lt;code&gt;then()&lt;/code&gt;‘s callback, the Promise you are responding to has already resolved. The result of your callback will have no influence on this Promise
+&lt;/div&gt;
+
+&lt;p&gt;If you want to capture the above error, you need an error callback further downstream&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;lang-javascript&quot;&gt;getSomeJson().then(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(json)&lt;/span&gt; {&lt;/span&gt;
+  &lt;span class=&quot;keyword&quot;&gt;var&lt;/span&gt; obj = JSON.parse(json);
+  console.log(obj);
+}).then(&lt;span class=&quot;literal&quot;&gt;null&lt;/span&gt;, &lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(error)&lt;/span&gt; {&lt;/span&gt;
+  console.log(&lt;span class=&quot;string&quot;&gt;&quot;an error occured: &quot;&lt;/span&gt;, error);
+});&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Notice we don’t have a success callback, it’s perfectly fine to omit it. In this case we will properly log the error.&lt;/p&gt;
+&lt;div class=&quot;callout pitfall&quot;&gt;
+In my experience, this is the biggest pitfall of Promises. If you read only one section of this article, this is the one!
+&lt;/div&gt;
+
+
+&lt;h2 id=&quot;promise-resolution-needs-to-be-async&quot;&gt;Promise Resolution Needs to be Async&lt;/h2&gt;
+&lt;p&gt;Early in the article we cheated a bit by using &lt;code&gt;setTimeout&lt;/code&gt;. Once we fixed that hack, we’ve not used setTimeout since. But the truth is the Promise/A+ spec requires that Promise resolution happen asynchronously. Meeting this requirement is simple, we simply need to wrap most of &lt;code&gt;handle()&lt;/code&gt;‘s implementation inside of a &lt;code&gt;setTimeout&lt;/code&gt; call&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;lang-javascript&quot;&gt;&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;title&quot;&gt;handle&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(handler)&lt;/span&gt; {&lt;/span&gt;
+  &lt;span class=&quot;keyword&quot;&gt;if&lt;/span&gt;(state === &lt;span class=&quot;string&quot;&gt;'pending'&lt;/span&gt;) {
+    deferred = handler;
+    &lt;span class=&quot;keyword&quot;&gt;return&lt;/span&gt;;
+  }
+  setTimeout(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;()&lt;/span&gt; {&lt;/span&gt;
+    &lt;span class=&quot;comment&quot;&gt;// ... as before&lt;/span&gt;
+  }, &lt;span class=&quot;number&quot;&gt;1&lt;/span&gt;);
+}&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;This is all that is needed. In truth, real Promise libraries don’t tend to use &lt;code&gt;setTimeout&lt;/code&gt;. If the library is NodeJS oriented it will possibly use &lt;code&gt;process.nextTick&lt;/code&gt;, for browsers it might use the new &lt;code&gt;setImmediate&lt;/code&gt; or a &lt;a href=&quot;https://github.com/NobleJS/setImmediate&quot;&gt;setImmediate shim&lt;/a&gt; (so far only IE supports setImmediate), or perhaps an asynchronous library such as Kriskowal’s &lt;a href=&quot;https://github.com/kriskowal/asap&quot;&gt;asap&lt;/a&gt; (Kriskowal also wrote &lt;a href=&quot;https://github.com/kriskowal/q&quot;&gt;Q&lt;/a&gt;, a popular Promise library)&lt;/p&gt;
+&lt;h3 id=&quot;why-is-this-async-requirement-in-the-spec-&quot;&gt;Why Is This Async Requirement in the Spec?&lt;/h3&gt;
+&lt;p&gt;It allows for consistency and reliable execution flow. Consider this contrived example&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;lang-javascript&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;var&lt;/span&gt; promise = doAnOperation();
+invokeSomething();
+promise.then(wrapItAllUp);
+invokeSomethingElse();&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;What is the call flow here? Based on the naming you’d probably guess it is &lt;code&gt;invokeSomething -&amp;gt; invokeSomethingElse -&amp;gt; wrapItAllUp&lt;/code&gt;. But this all depends on if the promise resolves synchronously or asynchronously in our current implementation. If &lt;code&gt;doAnOperation()&lt;/code&gt; works asynchronously, then that is the call flow. But if it works synchronously, then the call flow is actually &lt;code&gt;invokeSomething -&amp;gt; wrapItAllUp -&amp;gt; invokeSomethingElse&lt;/code&gt;, which is probably bad.&lt;/p&gt;
+&lt;p&gt;To get around this, Promises &lt;strong&gt;always&lt;/strong&gt; resolve asynchronously, even if they don’t have to. It reduces surprise and allows people to use Promises without having to take into consideration asynchronicity when reasoning about their code.&lt;/p&gt;
+&lt;div class=&quot;callout pitfall&quot;&gt;
+Promises always require at least one more iteration of the event loop to resolve. This is not necessarily true of the standard callback approach.
+&lt;/div&gt;
+
+&lt;h2 id=&quot;before-we-wrap-up-then-promise&quot;&gt;Before We Wrap Up … then/promise&lt;/h2&gt;
+&lt;p&gt;There are many, full featured, Promise libraries out there. The &lt;a href=&quot;https://github.com/then&quot;&gt;then&lt;/a&gt; organization’s &lt;a href=&quot;https://github.com/then/promise&quot;&gt;promise&lt;/a&gt; library takes a simpler approach. It is meant to be a simple implementation that meets the spec and nothing more. If you take a look at &lt;a href=&quot;https://github.com/then/promise/blob/master/core.js&quot;&gt;their implementation&lt;/a&gt;, you should see it looks quite familiar. then/promise was the basis of the code for this article, we’ve &lt;em&gt;almost&lt;/em&gt; built up the same Promise implementation. Thanks to Nathan Zadoks and Forbes Lindsay for their great library and work on JavaScript Promises. Forbes Lindsay is also the guy behind the &lt;a href=&quot;http://promisejs.org/&quot;&gt;promisejs.org&lt;/a&gt; site mentioned at the start.&lt;/p&gt;
+&lt;p&gt;There are some differences in the real implementation and what is here in this article. That is because there are more details in the Promise/A+ spec that I have not addressed. I recommend &lt;a href=&quot;http://promises-aplus.github.io/promises-spec/&quot;&gt;reading the spec&lt;/a&gt;, it is short and pretty straightforward. &lt;/p&gt;
+&lt;h2 id=&quot;conclusion&quot;&gt;Conclusion&lt;/h2&gt;
+&lt;p&gt;If you made it this far, then thanks for reading! We’ve covered the core of Promises, which is the only thing the spec addresses. Most implementations offer much more functionality, such as &lt;code&gt;all()&lt;/code&gt;, &lt;code&gt;race()&lt;/code&gt;, &lt;code&gt;denodeify()&lt;/code&gt; and much more. I recommend browsing the &lt;a href=&quot;https://github.com/petkaantonov/bluebird/blob/master/API.md&quot;&gt;API docs for Bluebird&lt;/a&gt; to see what all is possible with Promises. &lt;/p&gt;
+&lt;p&gt;Once I came to understand how Promises worked and their caveats, I came to really like them. They have lead to very clean and elegant code in my projects. There’s so much more to talk about too, this article is just the beginning!&lt;/p&gt;
+&lt;p&gt;If you enjoyed this, you should &lt;a href=&quot;http://twitter.com/cityfortyone&quot;&gt;follow me on Twitter&lt;/a&gt; to find out when I write another guide like this.&lt;/p&gt;
+</description>
+    </item>
     <item>
       <title>CoffeeScript's Time is Waning For Me</title>
       <link>http://mattgreer.org/articles/coffeescripts-time-is-waning/</link>
