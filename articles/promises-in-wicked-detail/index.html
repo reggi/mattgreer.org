@@ -80,6 +80,7 @@
    <li><a href="#promises-have-state">Promises have State</a></li>
    <li><a href="#chaining-promises">Chaining Promises</a>
      <ul>
+       <li><a href="#the-callback-is-optional">The Callback is Optional</a></li>
        <li><a href="#returning-promises-inside-the-chain">Returning Promises Inside the Chain</a></li>
     </li>
     </ul>
@@ -271,7 +272,7 @@ promise.then(<span class="function"><span class="keyword">function</span><span c
       <span class="keyword">return</span>;
     }
 
-    <span class="keyword">if</span>(handler.onResolved === <span class="literal">null</span>) {
+    <span class="keyword">if</span>(!handler.onResolved) {
       handler.resolve(value);
       <span class="keyword">return</span>;
     }
@@ -291,7 +292,7 @@ promise.then(<span class="function"><span class="keyword">function</span><span c
 
   fn(resolve);
 }</code></pre>
-<p><a class="fiddle" target="_blank" href="http://jsfiddle.net/city41/HdzLv/1/">fiddle</a></p>
+<p><a class="fiddle" target="_blank" href="http://jsfiddle.net/city41/HdzLv/2/">fiddle</a></p>
 <p>Hoo, it’s getting a little squirrelly. Aren’t you glad we’re building this up slowly? The real key here is that <code>then()</code> is returning a new Promise. </p>
 <div class="callout pitfall">
 Since <code>then()</code> always returns a new Promise object, there will always be at least one Promise object that gets created, resolved and then ignored. Which can be seen as wasteful. The callback approach does not have this problem. Another ding against Promises. You can start to appreciate why some in the JavaScript community have shunned them.
@@ -361,6 +362,20 @@ doSomething().then(<span class="function"><span class="keyword">function</span><
 </div>
 
 <p>A potentially better way is to use a Promise library’s <code>all()</code> method or any number of other utility methods that increase the usefulness of Promises, which I’ll leave to you to go and discover. </p>
+<h3 id="the-callback-is-optional">The Callback is Optional</h3>
+<p>The callback to <code>then()</code> is not strictly required. If you leave it off, the Promise resolves to the same value as the previous Promise</p>
+<pre><code class="lang-javascript">doSomething().then().then(<span class="function"><span class="keyword">function</span><span class="params">(result)</span> {</span>
+  console.log(<span class="string">'got a result'</span>, result);
+});
+
+<span class="comment">// the output is</span>
+<span class="comment">//</span>
+<span class="comment">// got a result 42</span></code></pre>
+<p>You can see this inside of <code>handle()</code>, where if there is no callback, it simply resolves the Promise and exits</p>
+<pre><code class="lang-javascript"><span class="keyword">if</span>(!handler.onResolved) {
+  handler.resolve(value);
+  <span class="keyword">return</span>;
+}</code></pre>
 <h3 id="returning-promises-inside-the-chain">Returning Promises Inside the Chain</h3>
 <p>Our chaining implementation is a bit naive. It’s blindly passing the resolved values down the line. What if one of the resolved values is a Promise? For example</p>
 <pre><code class="lang-javascript">doSomething().then(result) {
@@ -391,7 +406,7 @@ doSomething().then(<span class="function"><span class="keyword">function</span><
     handle(deferred);
   }
 }</code></pre>
-<p><a class="fiddle" target="_blank" href="http://jsfiddle.net/city41/38CCb/1/">fiddle</a></p>
+<p><a class="fiddle" target="_blank" href="http://jsfiddle.net/city41/38CCb/2/">fiddle</a></p>
 <p>We’ll keep calling <code>resolve()</code> recursively as long as we get a Promise back. Once it’s no longer a Promise, then proceed as before.</p>
 <div class="callout pitfall">
 It <em>is</em> possible for this to be an infinite loop. The Promise/A+ spec recommends implementations detect infinite loops, but it’s not required.
@@ -472,7 +487,7 @@ As mentioned earlier, the Promise will transition from <strong>pending</strong> 
       handlerCallback = handler.onRejected;
     }
 
-    <span class="keyword">if</span>(handlerCallback === <span class="literal">null</span>) {
+    <span class="keyword">if</span>(!handlerCallback) {
       <span class="keyword">if</span>(state === <span class="string">'resolved'</span>) {
         handler.resolve(value);
       } <span class="keyword">else</span> {
@@ -499,7 +514,7 @@ As mentioned earlier, the Promise will transition from <strong>pending</strong> 
 
   fn(resolve, reject);
 }</code></pre>
-<p><a class="fiddle" target="_blank" href="http://jsfiddle.net/city41/rLXsL/1/">fiddle</a></p>
+<p><a class="fiddle" target="_blank" href="http://jsfiddle.net/city41/rLXsL/2/">fiddle</a></p>
 <p>Other than the addition of <code>reject()</code> itself, <code>handle()</code> also has to be aware of rejection. Within <code>handle()</code>, either the rejection path or resolve path will be taken depending on the value of <code>state</code>. This value of <code>state</code> gets pushed into the next Promise, because calling the next Promises’ <code>resolve()</code> or <code>reject()</code> sets its <code>state</code> value accordingly.</p>
 <div class="callout pitfall">
 When using Promises, it’s very easy to omit the error callback. But if you do, you’ll never get <em>any</em> indication something went wrong. At the very least, the final Promise in your chain should have an error callback. See the section further down about swallowed errors for more info.
@@ -547,7 +562,7 @@ getSomeJson().then(<span class="function"><span class="keyword">function</span><
 }, <span class="function"><span class="keyword">function</span><span class="params">(error)</span> {</span>
   console.log(<span class="string">'uh oh'</span>, error);
 });</code></pre>
-<p><a class="fiddle" target="_blank" href="http://jsfiddle.net/city41/M7SRM/1/">fiddle</a></p>
+<p><a class="fiddle" target="_blank" href="http://jsfiddle.net/city41/M7SRM/2/">fiddle</a></p>
 <p>What is going to happen here? Our callback inside <code>then()</code> is expecting some valid JSON. So it naively tries to parse it, which leads to an exception. But we have an error callback, so we’re good, right?</p>
 <div class="callout pitfall">
 <strong>Nope.</strong> <em>That error callback will not be invoked!</em> If you run this example via the above fiddle, you will get no output at all. No errors, no nothing. Pure <em>chilling</em> silence.

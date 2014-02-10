@@ -60,6 +60,7 @@
    &lt;li&gt;&lt;a href=&quot;#promises-have-state&quot;&gt;Promises have State&lt;/a&gt;&lt;/li&gt;
    &lt;li&gt;&lt;a href=&quot;#chaining-promises&quot;&gt;Chaining Promises&lt;/a&gt;
      &lt;ul&gt;
+       &lt;li&gt;&lt;a href=&quot;#the-callback-is-optional&quot;&gt;The Callback is Optional&lt;/a&gt;&lt;/li&gt;
        &lt;li&gt;&lt;a href=&quot;#returning-promises-inside-the-chain&quot;&gt;Returning Promises Inside the Chain&lt;/a&gt;&lt;/li&gt;
     &lt;/li&gt;
     &lt;/ul&gt;
@@ -251,7 +252,7 @@ promise.then(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword
       &lt;span class=&quot;keyword&quot;&gt;return&lt;/span&gt;;
     }
 
-    &lt;span class=&quot;keyword&quot;&gt;if&lt;/span&gt;(handler.onResolved === &lt;span class=&quot;literal&quot;&gt;null&lt;/span&gt;) {
+    &lt;span class=&quot;keyword&quot;&gt;if&lt;/span&gt;(!handler.onResolved) {
       handler.resolve(value);
       &lt;span class=&quot;keyword&quot;&gt;return&lt;/span&gt;;
     }
@@ -271,7 +272,7 @@ promise.then(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword
 
   fn(resolve);
 }&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;&lt;a class=&quot;fiddle&quot; target=&quot;_blank&quot; href=&quot;http://jsfiddle.net/city41/HdzLv/1/&quot;&gt;fiddle&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a class=&quot;fiddle&quot; target=&quot;_blank&quot; href=&quot;http://jsfiddle.net/city41/HdzLv/2/&quot;&gt;fiddle&lt;/a&gt;&lt;/p&gt;
 &lt;p&gt;Hoo, it’s getting a little squirrelly. Aren’t you glad we’re building this up slowly? The real key here is that &lt;code&gt;then()&lt;/code&gt; is returning a new Promise. &lt;/p&gt;
 &lt;div class=&quot;callout pitfall&quot;&gt;
 Since &lt;code&gt;then()&lt;/code&gt; always returns a new Promise object, there will always be at least one Promise object that gets created, resolved and then ignored. Which can be seen as wasteful. The callback approach does not have this problem. Another ding against Promises. You can start to appreciate why some in the JavaScript community have shunned them.
@@ -341,6 +342,20 @@ doSomething().then(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;k
 &lt;/div&gt;
 
 &lt;p&gt;A potentially better way is to use a Promise library’s &lt;code&gt;all()&lt;/code&gt; method or any number of other utility methods that increase the usefulness of Promises, which I’ll leave to you to go and discover. &lt;/p&gt;
+&lt;h3 id=&quot;the-callback-is-optional&quot;&gt;The Callback is Optional&lt;/h3&gt;
+&lt;p&gt;The callback to &lt;code&gt;then()&lt;/code&gt; is not strictly required. If you leave it off, the Promise resolves to the same value as the previous Promise&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;lang-javascript&quot;&gt;doSomething().then().then(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(result)&lt;/span&gt; {&lt;/span&gt;
+  console.log(&lt;span class=&quot;string&quot;&gt;'got a result'&lt;/span&gt;, result);
+});
+
+&lt;span class=&quot;comment&quot;&gt;// the output is&lt;/span&gt;
+&lt;span class=&quot;comment&quot;&gt;//&lt;/span&gt;
+&lt;span class=&quot;comment&quot;&gt;// got a result 42&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;You can see this inside of &lt;code&gt;handle()&lt;/code&gt;, where if there is no callback, it simply resolves the Promise and exits&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;lang-javascript&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;if&lt;/span&gt;(!handler.onResolved) {
+  handler.resolve(value);
+  &lt;span class=&quot;keyword&quot;&gt;return&lt;/span&gt;;
+}&lt;/code&gt;&lt;/pre&gt;
 &lt;h3 id=&quot;returning-promises-inside-the-chain&quot;&gt;Returning Promises Inside the Chain&lt;/h3&gt;
 &lt;p&gt;Our chaining implementation is a bit naive. It’s blindly passing the resolved values down the line. What if one of the resolved values is a Promise? For example&lt;/p&gt;
 &lt;pre&gt;&lt;code class=&quot;lang-javascript&quot;&gt;doSomething().then(result) {
@@ -371,7 +386,7 @@ doSomething().then(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;k
     handle(deferred);
   }
 }&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;&lt;a class=&quot;fiddle&quot; target=&quot;_blank&quot; href=&quot;http://jsfiddle.net/city41/38CCb/1/&quot;&gt;fiddle&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a class=&quot;fiddle&quot; target=&quot;_blank&quot; href=&quot;http://jsfiddle.net/city41/38CCb/2/&quot;&gt;fiddle&lt;/a&gt;&lt;/p&gt;
 &lt;p&gt;We’ll keep calling &lt;code&gt;resolve()&lt;/code&gt; recursively as long as we get a Promise back. Once it’s no longer a Promise, then proceed as before.&lt;/p&gt;
 &lt;div class=&quot;callout pitfall&quot;&gt;
 It &lt;em&gt;is&lt;/em&gt; possible for this to be an infinite loop. The Promise/A+ spec recommends implementations detect infinite loops, but it’s not required.
@@ -452,7 +467,7 @@ As mentioned earlier, the Promise will transition from &lt;strong&gt;pending&lt;
       handlerCallback = handler.onRejected;
     }
 
-    &lt;span class=&quot;keyword&quot;&gt;if&lt;/span&gt;(handlerCallback === &lt;span class=&quot;literal&quot;&gt;null&lt;/span&gt;) {
+    &lt;span class=&quot;keyword&quot;&gt;if&lt;/span&gt;(!handlerCallback) {
       &lt;span class=&quot;keyword&quot;&gt;if&lt;/span&gt;(state === &lt;span class=&quot;string&quot;&gt;'resolved'&lt;/span&gt;) {
         handler.resolve(value);
       } &lt;span class=&quot;keyword&quot;&gt;else&lt;/span&gt; {
@@ -479,7 +494,7 @@ As mentioned earlier, the Promise will transition from &lt;strong&gt;pending&lt;
 
   fn(resolve, reject);
 }&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;&lt;a class=&quot;fiddle&quot; target=&quot;_blank&quot; href=&quot;http://jsfiddle.net/city41/rLXsL/1/&quot;&gt;fiddle&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a class=&quot;fiddle&quot; target=&quot;_blank&quot; href=&quot;http://jsfiddle.net/city41/rLXsL/2/&quot;&gt;fiddle&lt;/a&gt;&lt;/p&gt;
 &lt;p&gt;Other than the addition of &lt;code&gt;reject()&lt;/code&gt; itself, &lt;code&gt;handle()&lt;/code&gt; also has to be aware of rejection. Within &lt;code&gt;handle()&lt;/code&gt;, either the rejection path or resolve path will be taken depending on the value of &lt;code&gt;state&lt;/code&gt;. This value of &lt;code&gt;state&lt;/code&gt; gets pushed into the next Promise, because calling the next Promises’ &lt;code&gt;resolve()&lt;/code&gt; or &lt;code&gt;reject()&lt;/code&gt; sets its &lt;code&gt;state&lt;/code&gt; value accordingly.&lt;/p&gt;
 &lt;div class=&quot;callout pitfall&quot;&gt;
 When using Promises, it’s very easy to omit the error callback. But if you do, you’ll never get &lt;em&gt;any&lt;/em&gt; indication something went wrong. At the very least, the final Promise in your chain should have an error callback. See the section further down about swallowed errors for more info.
@@ -527,7 +542,7 @@ getSomeJson().then(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;k
 }, &lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(error)&lt;/span&gt; {&lt;/span&gt;
   console.log(&lt;span class=&quot;string&quot;&gt;'uh oh'&lt;/span&gt;, error);
 });&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;&lt;a class=&quot;fiddle&quot; target=&quot;_blank&quot; href=&quot;http://jsfiddle.net/city41/M7SRM/1/&quot;&gt;fiddle&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a class=&quot;fiddle&quot; target=&quot;_blank&quot; href=&quot;http://jsfiddle.net/city41/M7SRM/2/&quot;&gt;fiddle&lt;/a&gt;&lt;/p&gt;
 &lt;p&gt;What is going to happen here? Our callback inside &lt;code&gt;then()&lt;/code&gt; is expecting some valid JSON. So it naively tries to parse it, which leads to an exception. But we have an error callback, so we’re good, right?&lt;/p&gt;
 &lt;div class=&quot;callout pitfall&quot;&gt;
 &lt;strong&gt;Nope.&lt;/strong&gt; &lt;em&gt;That error callback will not be invoked!&lt;/em&gt; If you run this example via the above fiddle, you will get no output at all. No errors, no nothing. Pure &lt;em&gt;chilling&lt;/em&gt; silence.
