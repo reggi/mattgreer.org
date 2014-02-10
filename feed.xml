@@ -560,7 +560,7 @@ Always remember, inside of &lt;code&gt;then()&lt;/code&gt;‘s callback, the Pro
 }).then(&lt;span class=&quot;literal&quot;&gt;null&lt;/span&gt;, &lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(error)&lt;/span&gt; {&lt;/span&gt;
   console.log(&lt;span class=&quot;string&quot;&gt;&quot;an error occured: &quot;&lt;/span&gt;, error);
 });&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Notice we don’t have a success callback, it’s perfectly fine to omit it. In this case we will properly log the error.&lt;/p&gt;
+&lt;p&gt;Now we will properly log the error.&lt;/p&gt;
 &lt;div class=&quot;callout pitfall&quot;&gt;
 In my experience, this is the biggest pitfall of Promises. If you read only one section of this article, this is the one!
 &lt;/div&gt;
