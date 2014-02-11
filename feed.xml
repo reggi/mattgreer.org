@@ -27,6 +27,10 @@
   .pitfall {
     background-color: #EEC2C4;
   }
+  .addendum {
+    background-color: #F9D423;
+    color: #BF4D28;
+  }
 
   .fiddle {
     display: inline-block;
@@ -46,6 +50,10 @@
 &lt;p&gt;I’ve been using Promises in my JavaScript code for a while now. They can be a little brain bending at first. I now use them pretty effectively, but when it came down to it, I didn’t fully understand how they work. This article is my resolution to that. If you stick around until the end, you should understand Promises well too. &lt;/p&gt;
 &lt;p&gt;&lt;span class=&quot;more&quot;&gt;&lt;/span&gt;&lt;/p&gt;
 &lt;p&gt;We will be incrementally creating a Promise implementation that by the end will &lt;em&gt;mostly&lt;/em&gt; meet the &lt;a href=&quot;http://promises-aplus.github.io/promises-spec/&quot;&gt;Promise/A+ spec&lt;/a&gt;, and understand how promises meet the needs of asynchronous programming along the way. This article assumes you already have some familiarity with Promises. If you don’t, &lt;a href=&quot;http://promisejs.org/&quot;&gt;promisejs.org&lt;/a&gt; is a good site to checkout.&lt;/p&gt;
+&lt;div class=&quot;callout addendum&quot;&gt;
+After receiving some feedback on this article, I’ve made a few changes. Most notable, I added a section about &lt;code&gt;done()&lt;/code&gt;, you can find it &lt;a href=&quot;#done-to-the-rescue&quot;&gt;here&lt;/a&gt;.
+&lt;/div&gt;
+
 &lt;h2 id=&quot;table-of-contents&quot;&gt;Table of Contents&lt;/h2&gt;
 &lt;ol&gt;
   &lt;li&gt;&lt;a href=&quot;#why-&quot;&gt;Why?&lt;/a&gt;&lt;/li&gt;
@@ -67,6 +75,7 @@
    &lt;ul&gt;
      &lt;li&gt;&lt;a href=&quot;#unexpected-errors-should-also-lead-to-rejection&quot;&gt;Unexpected Errors Should Also Lead to Rejection&lt;/a&gt;&lt;/li&gt;
      &lt;li&gt;&lt;a href=&quot;#promises-can-swallow-errors-&quot;&gt;Promises Can Swallow Errors!&lt;/a&gt;&lt;/li&gt;
+     &lt;li&gt;&lt;a href=&quot;#done-to-the-rescue&quot;&gt;done() to the Rescue&lt;/a&gt;&lt;/li&gt;
    &lt;/ul&gt;
    &lt;/li&gt;
    &lt;li&gt;&lt;a href=&quot;#promise-resolution-needs-to-be-async&quot;&gt;Promise Resolution Needs to be Async&lt;/a&gt;
@@ -77,6 +86,7 @@
    &lt;/li&gt;
    &lt;li&gt;&lt;a href=&quot;#before-we-wrap-up-then-promise&quot;&gt;Before We Wrap Up … then/promise&lt;/a&gt;&lt;/li&gt;
    &lt;li&gt;&lt;a href=&quot;#conclusion&quot;&gt;Conclusion&lt;/a&gt;&lt;/li&gt;
+   &lt;li&gt;&lt;a href=&quot;#further-reading&quot;&gt;Further Reading&lt;/a&gt;&lt;/li&gt;
 
 &lt;/ol&gt;
 
@@ -217,6 +227,10 @@ promise.then(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword
 promise.then(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(value)&lt;/span&gt; {&lt;/span&gt;
   console.log(&lt;span class=&quot;string&quot;&gt;'Got the same value again:'&lt;/span&gt;, value);
 });&lt;/code&gt;&lt;/pre&gt;
+&lt;div class=&quot;callout pitfall&quot;&gt;
+This is not completely true for the Promise implementation in this article. If the opposite happens, ie the caller calls &lt;code&gt;then()&lt;/code&gt; multiple times before &lt;code&gt;resolve()&lt;/code&gt; is called, only the last call to &lt;code&gt;then()&lt;/code&gt; will be honored. The fix for this is to keep a running list of deferreds inside of the Promise instead of just one. I decided to not do that in the interest of keeping the article more simple, it’s long enough as it is :)
+&lt;/div&gt;
+
 &lt;p&gt;The &lt;code&gt;promise&lt;/code&gt; object stands as a representation of the result. We can pass it around, store it, use it as many times as we need, etc. &lt;/p&gt;
 &lt;h2 id=&quot;chaining-promises&quot;&gt;Chaining Promises&lt;/h2&gt;
 &lt;p&gt;Since Promises capture the notion of asynchronicity in an object, we can chain them, map them, have them run in parallel or sequential, all kinds of useful things. Code like the following is very common with Promises&lt;/p&gt;
@@ -517,6 +531,7 @@ When using Promises, it’s very easy to omit the error callback. But if you do,
     ret = handlerCallback(value);
   } &lt;span class=&quot;keyword&quot;&gt;catch&lt;/span&gt;(e) {
     handler.reject(e);
+    &lt;span class=&quot;keyword&quot;&gt;return&lt;/span&gt;;
   }
 
   handler.resolve(ret);
@@ -540,7 +555,7 @@ getSomeJson().then(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;k
 }, &lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(error)&lt;/span&gt; {&lt;/span&gt;
   console.log(&lt;span class=&quot;string&quot;&gt;'uh oh'&lt;/span&gt;, error);
 });&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;&lt;a class=&quot;fiddle&quot; target=&quot;_blank&quot; href=&quot;http://jsfiddle.net/city41/M7SRM/2/&quot;&gt;fiddle&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a class=&quot;fiddle&quot; target=&quot;_blank&quot; href=&quot;http://jsfiddle.net/city41/M7SRM/3/&quot;&gt;fiddle&lt;/a&gt;&lt;/p&gt;
 &lt;p&gt;What is going to happen here? Our callback inside &lt;code&gt;then()&lt;/code&gt; is expecting some valid JSON. So it naively tries to parse it, which leads to an exception. But we have an error callback, so we’re good, right?&lt;/p&gt;
 &lt;div class=&quot;callout pitfall&quot;&gt;
 &lt;strong&gt;Nope.&lt;/strong&gt; &lt;em&gt;That error callback will not be invoked!&lt;/em&gt; If you run this example via the above fiddle, you will get no output at all. No errors, no nothing. Pure &lt;em&gt;chilling&lt;/em&gt; silence.
@@ -560,7 +575,20 @@ Always remember, inside of &lt;code&gt;then()&lt;/code&gt;‘s callback, the Pro
 });&lt;/code&gt;&lt;/pre&gt;
 &lt;p&gt;Now we will properly log the error.&lt;/p&gt;
 &lt;div class=&quot;callout pitfall&quot;&gt;
-In my experience, this is the biggest pitfall of Promises. If you read only one section of this article, this is the one!
+In my experience, this is the biggest pitfall of Promises. Read onto the next section for a potentially better solution
+&lt;/div&gt;
+
+&lt;h3 id=&quot;done-to-the-rescue&quot;&gt;done() to the Rescue&lt;/h3&gt;
+&lt;p&gt;Most (but not all) Promise libraries have a &lt;code&gt;done()&lt;/code&gt; method. It’s very similar to &lt;code&gt;then()&lt;/code&gt;, except it avoids the pitfalls of &lt;code&gt;then()&lt;/code&gt; (as outlined in the previous section).&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;done()&lt;/code&gt; can be called whenever &lt;code&gt;then()&lt;/code&gt; can. The key differences are it does not return a Promise, and any unhandled exception inside of &lt;code&gt;done()&lt;/code&gt; is not captured by the Promise implementation. In other words, &lt;code&gt;done()&lt;/code&gt; represents when the entire Promise chain has fully resolved. Our &lt;code&gt;getSomeJson()&lt;/code&gt; example can be more robust using &lt;code&gt;done()&lt;/code&gt;&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;lang-javascript&quot;&gt;getSomeJson().done(&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;(json)&lt;/span&gt; {&lt;/span&gt;
+  &lt;span class=&quot;comment&quot;&gt;// when this throws, it won't be swallowed&lt;/span&gt;
+  &lt;span class=&quot;keyword&quot;&gt;var&lt;/span&gt; obj = JSON.parse(json);
+  console.log(obj);
+});&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;code&gt;done()&lt;/code&gt; also takes an error callback, &lt;code&gt;done(callback, errback)&lt;/code&gt;, just like &lt;code&gt;then()&lt;/code&gt; does, and since the entire Promise resolution is, well, done, you are assured of being informed of any errors that erupted.&lt;/p&gt;
+&lt;div class=&quot;callout pitfall&quot;&gt;
+&lt;code&gt;done()&lt;/code&gt; is not part of the Promise/A+ spec (at least not yet), so your Promise library of choice might not have it.
 &lt;/div&gt;
 
 
@@ -575,7 +603,7 @@ In my experience, this is the biggest pitfall of Promises. If you read only one 
     &lt;span class=&quot;comment&quot;&gt;// ... as before&lt;/span&gt;
   }, &lt;span class=&quot;number&quot;&gt;1&lt;/span&gt;);
 }&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;This is all that is needed. In truth, real Promise libraries don’t tend to use &lt;code&gt;setTimeout&lt;/code&gt;. If the library is NodeJS oriented it will possibly use &lt;code&gt;process.nextTick&lt;/code&gt;, for browsers it might use the new &lt;code&gt;setImmediate&lt;/code&gt; or a &lt;a href=&quot;https://github.com/NobleJS/setImmediate&quot;&gt;setImmediate shim&lt;/a&gt; (so far only IE supports setImmediate), or perhaps an asynchronous library such as Kriskowal’s &lt;a href=&quot;https://github.com/kriskowal/asap&quot;&gt;asap&lt;/a&gt; (Kriskowal also wrote &lt;a href=&quot;https://github.com/kriskowal/q&quot;&gt;Q&lt;/a&gt;, a popular Promise library)&lt;/p&gt;
+&lt;p&gt;This is all that is needed. In truth, real Promise libraries don’t tend to use &lt;code&gt;setTimeout&lt;/code&gt;. If the library is NodeJS oriented it will possibly use &lt;code&gt;process.nextTick&lt;/code&gt;, for browsers it might use the new &lt;code&gt;setImmediate&lt;/code&gt; or a &lt;a href=&quot;https://github.com/NobleJS/setImmediate&quot;&gt;setImmediate shim&lt;/a&gt; (so far only IE supports setImmediate), or perhaps an asynchronous library such as Kris Kowal’s &lt;a href=&quot;https://github.com/kriskowal/asap&quot;&gt;asap&lt;/a&gt; (Kris Kowal also wrote &lt;a href=&quot;https://github.com/kriskowal/q&quot;&gt;Q&lt;/a&gt;, a popular Promise library)&lt;/p&gt;
 &lt;h3 id=&quot;why-is-this-async-requirement-in-the-spec-&quot;&gt;Why Is This Async Requirement in the Spec?&lt;/h3&gt;
 &lt;p&gt;It allows for consistency and reliable execution flow. Consider this contrived example&lt;/p&gt;
 &lt;pre&gt;&lt;code class=&quot;lang-javascript&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;var&lt;/span&gt; promise = doAnOperation();
@@ -595,6 +623,13 @@ Promises always require at least one more iteration of the event loop to resolve
 &lt;p&gt;If you made it this far, then thanks for reading! We’ve covered the core of Promises, which is the only thing the spec addresses. Most implementations offer much more functionality, such as &lt;code&gt;all()&lt;/code&gt;, &lt;code&gt;race()&lt;/code&gt;, &lt;code&gt;denodeify()&lt;/code&gt; and much more. I recommend browsing the &lt;a href=&quot;https://github.com/petkaantonov/bluebird/blob/master/API.md&quot;&gt;API docs for Bluebird&lt;/a&gt; to see what all is possible with Promises. &lt;/p&gt;
 &lt;p&gt;Once I came to understand how Promises worked and their caveats, I came to really like them. They have led to very clean and elegant code in my projects. There’s so much more to talk about too, this article is just the beginning!&lt;/p&gt;
 &lt;p&gt;If you enjoyed this, you should &lt;a href=&quot;http://twitter.com/cityfortyone&quot;&gt;follow me on Twitter&lt;/a&gt; to find out when I write another guide like this.&lt;/p&gt;
+&lt;h2 id=&quot;further-reading&quot;&gt;Further Reading&lt;/h2&gt;
+&lt;p&gt;More great articles on Promises&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;http://promisejs.org/&quot;&gt;promisejs.org&lt;/a&gt; — great tutorial on Promises (already mentioned it a few times)&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://github.com/kriskowal/q/blob/v1/design/README.js&quot;&gt;Q’s Design Rationale&lt;/a&gt; — an article much like this one, but goes into even more detail. By Kris Kowal, creator of Q&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://github.com/domenic/promises-unwrapping/issues/19&quot;&gt;Some debate over whether done() is a good thing&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
 &lt;p&gt;&lt;strong&gt;Found a mistake?&lt;/strong&gt; if I made an error and you want to let me know, please &lt;a href=&quot;mailto:matt.e.greer@gmail.com&quot;&gt;email me&lt;/a&gt; or &lt;a href=&quot;https://github.com/city41/blog/blob/master/contents/articles/promises-in-wicked-detail/index.md&quot;&gt;send me a pull request&lt;/a&gt;. Thanks!&lt;/p&gt;
 </description>
     </item>

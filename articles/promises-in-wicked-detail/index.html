@@ -47,6 +47,10 @@
   .pitfall {
     background-color: #EEC2C4;
   }
+  .addendum {
+    background-color: #F9D423;
+    color: #BF4D28;
+  }
 
   .fiddle {
     display: inline-block;
@@ -66,6 +70,10 @@
 <p>I’ve been using Promises in my JavaScript code for a while now. They can be a little brain bending at first. I now use them pretty effectively, but when it came down to it, I didn’t fully understand how they work. This article is my resolution to that. If you stick around until the end, you should understand Promises well too. </p>
 <p><span class="more"></span></p>
 <p>We will be incrementally creating a Promise implementation that by the end will <em>mostly</em> meet the <a href="http://promises-aplus.github.io/promises-spec/">Promise/A+ spec</a>, and understand how promises meet the needs of asynchronous programming along the way. This article assumes you already have some familiarity with Promises. If you don’t, <a href="http://promisejs.org/">promisejs.org</a> is a good site to checkout.</p>
+<div class="callout addendum">
+After receiving some feedback on this article, I’ve made a few changes. Most notable, I added a section about <code>done()</code>, you can find it <a href="#done-to-the-rescue">here</a>.
+</div>
+
 <h2 id="table-of-contents">Table of Contents</h2>
 <ol>
   <li><a href="#why-">Why?</a></li>
@@ -87,6 +95,7 @@
    <ul>
      <li><a href="#unexpected-errors-should-also-lead-to-rejection">Unexpected Errors Should Also Lead to Rejection</a></li>
      <li><a href="#promises-can-swallow-errors-">Promises Can Swallow Errors!</a></li>
+     <li><a href="#done-to-the-rescue">done() to the Rescue</a></li>
    </ul>
    </li>
    <li><a href="#promise-resolution-needs-to-be-async">Promise Resolution Needs to be Async</a>
@@ -97,6 +106,7 @@
    </li>
    <li><a href="#before-we-wrap-up-then-promise">Before We Wrap Up … then/promise</a></li>
    <li><a href="#conclusion">Conclusion</a></li>
+   <li><a href="#further-reading">Further Reading</a></li>
 
 </ol>
 
@@ -237,6 +247,10 @@ promise.then(<span class="function"><span class="keyword">function</span><span c
 promise.then(<span class="function"><span class="keyword">function</span><span class="params">(value)</span> {</span>
   console.log(<span class="string">'Got the same value again:'</span>, value);
 });</code></pre>
+<div class="callout pitfall">
+This is not completely true for the Promise implementation in this article. If the opposite happens, ie the caller calls <code>then()</code> multiple times before <code>resolve()</code> is called, only the last call to <code>then()</code> will be honored. The fix for this is to keep a running list of deferreds inside of the Promise instead of just one. I decided to not do that in the interest of keeping the article more simple, it’s long enough as it is :)
+</div>
+
 <p>The <code>promise</code> object stands as a representation of the result. We can pass it around, store it, use it as many times as we need, etc. </p>
 <h2 id="chaining-promises">Chaining Promises</h2>
 <p>Since Promises capture the notion of asynchronicity in an object, we can chain them, map them, have them run in parallel or sequential, all kinds of useful things. Code like the following is very common with Promises</p>
@@ -537,6 +551,7 @@ When using Promises, it’s very easy to omit the error callback. But if you do,
     ret = handlerCallback(value);
   } <span class="keyword">catch</span>(e) {
     handler.reject(e);
+    <span class="keyword">return</span>;
   }
 
   handler.resolve(ret);
@@ -560,7 +575,7 @@ getSomeJson().then(<span class="function"><span class="keyword">function</span><
 }, <span class="function"><span class="keyword">function</span><span class="params">(error)</span> {</span>
   console.log(<span class="string">'uh oh'</span>, error);
 });</code></pre>
-<p><a class="fiddle" target="_blank" href="http://jsfiddle.net/city41/M7SRM/2/">fiddle</a></p>
+<p><a class="fiddle" target="_blank" href="http://jsfiddle.net/city41/M7SRM/3/">fiddle</a></p>
 <p>What is going to happen here? Our callback inside <code>then()</code> is expecting some valid JSON. So it naively tries to parse it, which leads to an exception. But we have an error callback, so we’re good, right?</p>
 <div class="callout pitfall">
 <strong>Nope.</strong> <em>That error callback will not be invoked!</em> If you run this example via the above fiddle, you will get no output at all. No errors, no nothing. Pure <em>chilling</em> silence.
@@ -580,7 +595,20 @@ Always remember, inside of <code>then()</code>‘s callback, the Promise you are
 });</code></pre>
 <p>Now we will properly log the error.</p>
 <div class="callout pitfall">
-In my experience, this is the biggest pitfall of Promises. If you read only one section of this article, this is the one!
+In my experience, this is the biggest pitfall of Promises. Read onto the next section for a potentially better solution
+</div>
+
+<h3 id="done-to-the-rescue">done() to the Rescue</h3>
+<p>Most (but not all) Promise libraries have a <code>done()</code> method. It’s very similar to <code>then()</code>, except it avoids the pitfalls of <code>then()</code> (as outlined in the previous section).</p>
+<p><code>done()</code> can be called whenever <code>then()</code> can. The key differences are it does not return a Promise, and any unhandled exception inside of <code>done()</code> is not captured by the Promise implementation. In other words, <code>done()</code> represents when the entire Promise chain has fully resolved. Our <code>getSomeJson()</code> example can be more robust using <code>done()</code></p>
+<pre><code class="lang-javascript">getSomeJson().done(<span class="function"><span class="keyword">function</span><span class="params">(json)</span> {</span>
+  <span class="comment">// when this throws, it won't be swallowed</span>
+  <span class="keyword">var</span> obj = JSON.parse(json);
+  console.log(obj);
+});</code></pre>
+<p><code>done()</code> also takes an error callback, <code>done(callback, errback)</code>, just like <code>then()</code> does, and since the entire Promise resolution is, well, done, you are assured of being informed of any errors that erupted.</p>
+<div class="callout pitfall">
+<code>done()</code> is not part of the Promise/A+ spec (at least not yet), so your Promise library of choice might not have it.
 </div>
 
 
@@ -595,7 +623,7 @@ In my experience, this is the biggest pitfall of Promises. If you read only one 
     <span class="comment">// ... as before</span>
   }, <span class="number">1</span>);
 }</code></pre>
-<p>This is all that is needed. In truth, real Promise libraries don’t tend to use <code>setTimeout</code>. If the library is NodeJS oriented it will possibly use <code>process.nextTick</code>, for browsers it might use the new <code>setImmediate</code> or a <a href="https://github.com/NobleJS/setImmediate">setImmediate shim</a> (so far only IE supports setImmediate), or perhaps an asynchronous library such as Kriskowal’s <a href="https://github.com/kriskowal/asap">asap</a> (Kriskowal also wrote <a href="https://github.com/kriskowal/q">Q</a>, a popular Promise library)</p>
+<p>This is all that is needed. In truth, real Promise libraries don’t tend to use <code>setTimeout</code>. If the library is NodeJS oriented it will possibly use <code>process.nextTick</code>, for browsers it might use the new <code>setImmediate</code> or a <a href="https://github.com/NobleJS/setImmediate">setImmediate shim</a> (so far only IE supports setImmediate), or perhaps an asynchronous library such as Kris Kowal’s <a href="https://github.com/kriskowal/asap">asap</a> (Kris Kowal also wrote <a href="https://github.com/kriskowal/q">Q</a>, a popular Promise library)</p>
 <h3 id="why-is-this-async-requirement-in-the-spec-">Why Is This Async Requirement in the Spec?</h3>
 <p>It allows for consistency and reliable execution flow. Consider this contrived example</p>
 <pre><code class="lang-javascript"><span class="keyword">var</span> promise = doAnOperation();
@@ -615,6 +643,13 @@ Promises always require at least one more iteration of the event loop to resolve
 <p>If you made it this far, then thanks for reading! We’ve covered the core of Promises, which is the only thing the spec addresses. Most implementations offer much more functionality, such as <code>all()</code>, <code>race()</code>, <code>denodeify()</code> and much more. I recommend browsing the <a href="https://github.com/petkaantonov/bluebird/blob/master/API.md">API docs for Bluebird</a> to see what all is possible with Promises. </p>
 <p>Once I came to understand how Promises worked and their caveats, I came to really like them. They have led to very clean and elegant code in my projects. There’s so much more to talk about too, this article is just the beginning!</p>
 <p>If you enjoyed this, you should <a href="http://twitter.com/cityfortyone">follow me on Twitter</a> to find out when I write another guide like this.</p>
+<h2 id="further-reading">Further Reading</h2>
+<p>More great articles on Promises</p>
+<ul>
+<li><a href="http://promisejs.org/">promisejs.org</a> — great tutorial on Promises (already mentioned it a few times)</li>
+<li><a href="https://github.com/kriskowal/q/blob/v1/design/README.js">Q’s Design Rationale</a> — an article much like this one, but goes into even more detail. By Kris Kowal, creator of Q</li>
+<li><a href="https://github.com/domenic/promises-unwrapping/issues/19">Some debate over whether done() is a good thing</a></li>
+</ul>
 <p><strong>Found a mistake?</strong> if I made an error and you want to let me know, please <a href="mailto:matt.e.greer@gmail.com">email me</a> or <a href="https://github.com/city41/blog/blob/master/contents/articles/promises-in-wicked-detail/index.md">send me a pull request</a>. Thanks!</p>
 </section>
             </article>
