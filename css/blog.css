@@ -3,7 +3,7 @@
 
 /* line 3 : /Users/matt/blog/stylus/variables.styl */
 
-/* line 65 : /Users/matt/blog/stylus/common.styl */
+/* line 66 : /Users/matt/blog/stylus/common.styl */
 
 /* line 1 : /Users/matt/blog/stylus/common.styl */
 body,
@@ -11,7 +11,8 @@ html {
   margin: 0;
   padding: 0;
   font-family: 'Lato', sans-serif;
-  font-size: 14px;
+  font-size: 16px;
+  line-height: 1.45;
   background-color: #f0efec;
 }
 
