@@ -14,40 +14,7 @@
       <pubDate>Sat, 08 Feb 2014 17:00:00 -0700</pubDate>
       <guid isPermaLink="true">http://mattgreer.org/articles/promises-in-wicked-detail/</guid>
       <author></author>
-      <description>&lt;style&gt;
-  .callout {
-    padding: 10px;
-    margin: 20px 0;
-    max-width: 600px;
-  }
-  .wisdom {
-    background-color: #CFF7B8;
-    color: #655C6F;
-  }
-  .pitfall {
-    background-color: #EEC2C4;
-  }
-  .addendum {
-    background-color: #F9D423;
-    color: #BF4D28;
-  }
-
-  .fiddle {
-    display: inline-block;
-    background-color: orange;
-    color: white;
-    margin: 10px 0;
-    padding: 5px;
-  }
-
-  .fiddle::after {
-    margin-left: 5px;
-    content: &quot;\f045&quot;;
-    font-family: FontAwesome;
-  }
-&lt;/style&gt;
-
-&lt;p&gt;I’ve been using Promises in my JavaScript code for a while now. They can be a little brain bending at first. I now use them pretty effectively, but when it came down to it, I didn’t fully understand how they work. This article is my resolution to that. If you stick around until the end, you should understand Promises well too. &lt;/p&gt;
+      <description>&lt;p&gt;I’ve been using Promises in my JavaScript code for a while now. They can be a little brain bending at first. I now use them pretty effectively, but when it came down to it, I didn’t fully understand how they work. This article is my resolution to that. If you stick around until the end, you should understand Promises well too. &lt;/p&gt;
 &lt;p&gt;&lt;span class=&quot;more&quot;&gt;&lt;/span&gt;&lt;/p&gt;
 &lt;p&gt;We will be incrementally creating a Promise implementation that by the end will &lt;em&gt;mostly&lt;/em&gt; meet the &lt;a href=&quot;http://promises-aplus.github.io/promises-spec/&quot;&gt;Promise/A+ spec&lt;/a&gt;, and understand how promises meet the needs of asynchronous programming along the way. This article assumes you already have some familiarity with Promises. If you don’t, &lt;a href=&quot;http://promisejs.org/&quot;&gt;promisejs.org&lt;/a&gt; is a good site to checkout.&lt;/p&gt;
 &lt;h2 id=&quot;table-of-contents&quot;&gt;Table of Contents&lt;/h2&gt;
