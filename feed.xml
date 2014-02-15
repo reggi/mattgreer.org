@@ -591,7 +591,7 @@ Promises always require at least one more iteration of the event loop to resolve
 &lt;li&gt;&lt;a href=&quot;http://promisejs.org/&quot;&gt;promisejs.org&lt;/a&gt; — great tutorial on Promises (already mentioned it a few times)&lt;/li&gt;
 &lt;li&gt;&lt;a href=&quot;https://github.com/kriskowal/q/blob/v1/design/README.js&quot;&gt;Q’s Design Rationale&lt;/a&gt; — an article much like this one, but goes into even more detail. By Kris Kowal, creator of Q&lt;/li&gt;
 &lt;li&gt;&lt;a href=&quot;https://github.com/domenic/promises-unwrapping/issues/19&quot;&gt;Some debate over whether done() is a good thing&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&quot;http://solutionoptimist.com/2013/12/27/javascript-promise-chains-2/&quot;&gt;Flattening Promise Chains&lt;/a&gt; by Burleson Thomas. A nice article that goes into more advanced usage of Promises. If my article is the “what”, then Burleson’s is a nice look at the “why”.&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://solutionoptimist.com/2013/12/27/javascript-promise-chains-2/&quot;&gt;Flattening Promise Chains&lt;/a&gt; by Thomas Burleson. A nice article that goes into more advanced usage of Promises. If my article is the “what”, then Thomas’s is a nice look at the “why”.&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;&lt;strong&gt;Found a mistake?&lt;/strong&gt; if I made an error and you want to let me know, please &lt;a href=&quot;mailto:matt.e.greer@gmail.com&quot;&gt;email me&lt;/a&gt; or &lt;a href=&quot;https://github.com/city41/blog/issues&quot;&gt;file an issue&lt;/a&gt;. Thanks!&lt;/p&gt;
 </description>
