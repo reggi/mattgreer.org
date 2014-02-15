@@ -214,7 +214,6 @@ promise.then(<span class="function"><span class="keyword">function</span><span c
 This is not completely true for the Promise implementation in this article. If the opposite happens, ie the caller calls <code>then()</code> multiple times before <code>resolve()</code> is called, only the last call to <code>then()</code> will be honored. The fix for this is to keep a running list of deferreds inside of the Promise instead of just one. I decided to not do that in the interest of keeping the article more simple, it’s long enough as it is :)
 </div>
 
-<p>The <code>promise</code> object stands as a representation of the result. We can pass it around, store it, use it as many times as we need, etc. </p>
 <h2 id="chaining-promises">Chaining Promises</h2>
 <p>Since Promises capture the notion of asynchronicity in an object, we can chain them, map them, have them run in parallel or sequential, all kinds of useful things. Code like the following is very common with Promises</p>
 <pre><code class="lang-javascript">getSomeData()
@@ -331,7 +330,7 @@ doSomething().then(<span class="function"><span class="keyword">function</span><
 
 <span class="comment">// the output is</span>
 <span class="comment">//</span>
-<span class="comment">// [42, 88, 99]</span></code></pre>
+<span class="comment">// 42, 88, 99</span></code></pre>
 <div class="callout wisdom">
   Promises always resolve to one value. If you need to pass more than one value along, you need to create a multi-value in some fashion (an array, an object, concatting strings, etc)
 </div>
@@ -346,7 +345,7 @@ doSomething().then(<span class="function"><span class="keyword">function</span><
 <span class="comment">// the output is</span>
 <span class="comment">//</span>
 <span class="comment">// got a result 42</span></code></pre>
-<p>You can see this inside of <code>handle()</code>, where if there is no callback, it simply resolves the Promise and exits</p>
+<p>You can see this inside of <code>handle()</code>, where if there is no callback, it simply resolves the Promise and exits. <code>value</code> is still the value of the previous Promise.</p>
 <pre><code class="lang-javascript"><span class="keyword">if</span>(!handler.onResolved) {
   handler.resolve(value);
   <span class="keyword">return</span>;
@@ -368,7 +367,7 @@ doSomething().then(<span class="function"><span class="keyword">function</span><
     console.log(<span class="string">"the final result is"</span>, finalResult);
   });
 });</code></pre>
-<p>Who wants that crud in their code? Let’s have the Promise implementation seemlessly handle this for us. This is simple to do, inside of <code>resolve()</code> just add a special case if the resolved value is a Promise</p>
+<p>Who wants that crud in their code? Let’s have the Promise implementation seamlessly handle this for us. This is simple to do, inside of <code>resolve()</code> just add a special case if the resolved value is a Promise</p>
 <pre><code class="lang-javascript"><span class="function"><span class="keyword">function</span> <span class="title">resolve</span><span class="params">(newValue)</span> {</span>
   <span class="keyword">if</span>(newValue &amp;&amp; <span class="keyword">typeof</span> newValue.then === <span class="string">'function'</span>) {
     newValue.then(resolve);
@@ -388,7 +387,7 @@ It <em>is</em> possible for this to be an infinite loop. The Promise/A+ spec rec
 </div>
 
 <div class="callout pitfall">
-Also worth pointing out, this implementation does not meet the spec. Nor will we fully meet the spec in this regard in the article. For the more curious, I recommend reading the <a href="http://promises-aplus.github.io/promises-spec/#the_promise_resolution_procedure">Promise resolution procedure</a> from the spec for some finer points I am leaving out
+Also worth pointing out, this implementation does not meet the spec. Nor will we fully meet the spec in this regard in the article. For the more curious, I recommend reading the <a href="http://promises-aplus.github.io/promises-spec/#the_promise_resolution_procedure">Promise resolution procedure</a>.
 </div>
 
 <p>Notice how loose the check is to see if <code>newValue</code> is a Promise? We are only looking for a <code>then()</code> method. This duck typing is intentional, it allows different Promise implementations to interopt with each other. It’s actually quite common for Promise libraries to intermingle, as different third party libraries you use can each use different Promise implementations.</p>
@@ -562,7 +561,7 @@ In my experience, this is the biggest pitfall of Promises. Read onto the next se
 </div>
 
 <h3 id="done-to-the-rescue">done() to the Rescue</h3>
-<p>Most (but not all) Promise libraries have a <code>done()</code> method. It’s very similar to <code>then()</code>, except it avoids the pitfalls of <code>then()</code> (as outlined in the previous section).</p>
+<p>Most (but not all) Promise libraries have a <code>done()</code> method. It’s very similar to <code>then()</code>, except it avoids the above pitfalls of <code>then()</code>.</p>
 <p><code>done()</code> can be called whenever <code>then()</code> can. The key differences are it does not return a Promise, and any unhandled exception inside of <code>done()</code> is not captured by the Promise implementation. In other words, <code>done()</code> represents when the entire Promise chain has fully resolved. Our <code>getSomeJson()</code> example can be more robust using <code>done()</code></p>
 <pre><code class="lang-javascript">getSomeJson().done(<span class="function"><span class="keyword">function</span><span class="params">(json)</span> {</span>
   <span class="comment">// when this throws, it won't be swallowed</span>
@@ -603,7 +602,7 @@ Promises always require at least one more iteration of the event loop to resolve
 <p>There are many, full featured, Promise libraries out there. The <a href="https://github.com/then">then</a> organization’s <a href="https://github.com/then/promise">promise</a> library takes a simpler approach. It is meant to be a simple implementation that meets the spec and nothing more. If you take a look at <a href="https://github.com/then/promise/blob/master/core.js">their implementation</a>, you should see it looks quite familiar. then/promise was the basis of the code for this article, we’ve <em>almost</em> built up the same Promise implementation. Thanks to Nathan Zadoks and Forbes Lindsay for their great library and work on JavaScript Promises. Forbes Lindsay is also the guy behind the <a href="http://promisejs.org/">promisejs.org</a> site mentioned at the start.</p>
 <p>There are some differences in the real implementation and what is here in this article. That is because there are more details in the Promise/A+ spec that I have not addressed. I recommend <a href="http://promises-aplus.github.io/promises-spec/">reading the spec</a>, it is short and pretty straightforward. </p>
 <h2 id="conclusion">Conclusion</h2>
-<p>If you made it this far, then thanks for reading! We’ve covered the core of Promises, which is the only thing the spec addresses. Most implementations offer much more functionality, such as <code>all()</code>, <code>race()</code>, <code>denodeify()</code> and much more. I recommend browsing the <a href="https://github.com/petkaantonov/bluebird/blob/master/API.md">API docs for Bluebird</a> to see what all is possible with Promises. </p>
+<p>If you made it this far, then thanks for reading! We’ve covered the core of Promises, which is the only thing the spec addresses. Most implementations offer much more functionality, such as <code>all()</code>, <code>spread()</code>, <code>race()</code>, <code>denodeify()</code> and much more. I recommend browsing the <a href="https://github.com/petkaantonov/bluebird/blob/master/API.md">API docs for Bluebird</a> to see what all is possible with Promises. </p>
 <p>Once I came to understand how Promises worked and their caveats, I came to really like them. They have led to very clean and elegant code in my projects. There’s so much more to talk about too, this article is just the beginning!</p>
 <p>If you enjoyed this, you should <a href="http://twitter.com/cityfortyone">follow me on Twitter</a> to find out when I write another guide like this.</p>
 <h2 id="further-reading">Further Reading</h2>
@@ -612,8 +611,9 @@ Promises always require at least one more iteration of the event loop to resolve
 <li><a href="http://promisejs.org/">promisejs.org</a> — great tutorial on Promises (already mentioned it a few times)</li>
 <li><a href="https://github.com/kriskowal/q/blob/v1/design/README.js">Q’s Design Rationale</a> — an article much like this one, but goes into even more detail. By Kris Kowal, creator of Q</li>
 <li><a href="https://github.com/domenic/promises-unwrapping/issues/19">Some debate over whether done() is a good thing</a></li>
+<li><a href="http://solutionoptimist.com/2013/12/27/javascript-promise-chains-2/">Flattening Promise Chains</a> by Burleson Thomas. A nice article that goes into more advanced usage of Promises. If my article is the “what”, then Burleson’s is a nice look at the “why”.</li>
 </ul>
-<p><strong>Found a mistake?</strong> if I made an error and you want to let me know, please <a href="mailto:matt.e.greer@gmail.com">email me</a> or <a href="https://github.com/city41/blog/blob/master/contents/articles/promises-in-wicked-detail/index.md">send me a pull request</a>. Thanks!</p>
+<p><strong>Found a mistake?</strong> if I made an error and you want to let me know, please <a href="mailto:matt.e.greer@gmail.com">email me</a> or <a href="https://github.com/city41/blog/issues">file an issue</a>. Thanks!</p>
 </section>
             </article>
           </div>
