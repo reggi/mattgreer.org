@@ -178,9 +178,9 @@ footer li a {
   color: #204c57;
 }
 
-/* line 5 : /Users/matt/blog/stylus/pages/pages.styl */
+/* line 6 : /Users/matt/blog/stylus/pages/pages.styl */
 
-/* line 5 : /Users/matt/blog/stylus/pages/index.styl */
+/* line 6 : /Users/matt/blog/stylus/pages/index.styl */
 
 /* line 6 : /Users/matt/blog/stylus/pages/index.styl */
 
@@ -372,7 +372,14 @@ h2.things {
   margin-left: 15px;
 }
 
-/* line 24 : /Users/matt/blog/stylus/syntax/syntax.styl */
+/* line 24 : /Users/matt/blog/stylus/pages/legacy.styl */
+
+/* line 1 : /Users/matt/blog/stylus/pages/legacy.styl */
+.moved {
+  min-height: 400px;
+}
+
+/* line 3 : /Users/matt/blog/stylus/syntax/syntax.styl */
 
 /* line 15 : /Users/matt/blog/stylus/syntax/syntax.styl */
 code.lang-markdown {
