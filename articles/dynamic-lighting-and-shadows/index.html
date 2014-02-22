@@ -79,7 +79,8 @@ uniform vec4 lightColor;
     <span class="comment">// and drop the pixel in</span>
     gl_FragColor = lightColor * lightWeight;
   }
-}</code></pre>
+}
+</code></pre>
 <p>Couple final points here. This is <em>per fragment lighting</em>, which is a bit different from per vertex lighting. Since the vertices are completely
 irrelevant in 2D rendering (just 4 vertices to drop the texture into the scene), have no choice but to do per fragment lighting. No problem, per
 fragment lighting is more accurate anyway. Also this shader is only rendering the light itself. It assumes the main sprite has already been drawn. I have to admit I am cheating a little bit, as I am setting my <code>lightColor</code> to a dark grey, and not sending out light but actually darkness. This
@@ -123,15 +124,16 @@ is because lighting the pixels up makes them looked washed out. There are ways t
     }
   }
   <span class="keyword">return</span> <span class="keyword">false</span>;
-}</code></pre>
+}
+</code></pre>
 <p>And here is the whole shebang:</p>
 <pre><code class="lang-c"><span class="preprocessor">#ifdef GL_ES</span>
   precision highp <span class="keyword">float</span>;
 <span class="preprocessor">#endif</span>
 
 vec2 extrude(vec2 other, <span class="keyword">float</span> angle, <span class="keyword">float</span> length) {
-  <span class="keyword">float</span> x = length * cos(angle);
-  <span class="keyword">float</span> y = length * sin(angle);
+  <span class="keyword">float</span> x = length * <span class="built_in">cos</span>(angle);
+  <span class="keyword">float</span> y = length * <span class="built_in">sin</span>(angle);
 
   <span class="keyword">return</span> vec2(other.x + x, other.y + y);
 }
@@ -144,7 +146,7 @@ vec2 extrude(vec2 other, <span class="keyword">float</span> angle, <span class="
 }
 
 <span class="keyword">float</span> getTraceHeight(<span class="keyword">float</span> height, <span class="keyword">float</span> zAngle, <span class="keyword">float</span> distance) {
-  <span class="keyword">return</span> distance * tan(zAngle) + height;
+  <span class="keyword">return</span> distance * <span class="built_in">tan</span>(zAngle) + height;
 }
 
 <span class="keyword">bool</span> isInShadow(<span class="keyword">float</span> xyAngle, <span class="keyword">float</span> zAngle, sampler2D heightMap,
@@ -189,7 +191,8 @@ uniform <span class="keyword">float</span> uTexStep;
   }
 
   gl_FragColor = vec4(<span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, alpha);
-}</code></pre>
+}
+</code></pre>
 <p>The <code>uTexStep</code> uniform is how far to move over each time we check a nearby pixel. This is set to either <code>1/heightMap.width</code> or <code>1/heightMap.height</code> before invoking the shader. This is because textures in OpenGL are typically mapped from 0 to 1, so the inverse is how far to move to get to the next pixel.</p>
 <h3 id="shadow-wrap-up">shadow wrap up</h3>
 <p>Truth be told there are some minor details I’m leaving out in the above code, but the core idea is definitely there. One major problem with this approach is each pixel in the scene can only have one height. A good example of how this is a limitation is trees. I can tell the engine to cast a really low, long shadow for a tree, but the trunk will never show up in the shadow. This is because the overhang area at the bottom of the leaves is not recorded in the height map.</p>
@@ -208,13 +211,13 @@ uniform <span class="keyword">float</span> uTexStep;
             <div class="wave hidden-xs hidden-sm"></div>
           </div>
           <div class="col-md-5">
-            <div class="about"> <p>Hi, I’m Matt Greer, thanks for stopping by. I’m a developer based out of Denver, CO. I am mostly interested in web related technology, 
+            <div class="about"><p>Hi, I’m Matt Greer, thanks for stopping by. I’m a developer based out of Denver, CO. I am mostly interested in web related technology, 
 but also dabble in games, Objective-C and startup related topics.  </p>
 <p>This site was created with <a href="http://wintersmith.io/">Wintersmith</a>. It’s hosted by GitHub, and its source is <a href="https://github.com/city41/blog">here</a>.</p>
 
             </div>
           </div>
-          <div class="col-md-4"> <ul>
+          <div class="col-md-4"><ul>
 <li><i class="fa fa-envelope"></i> <a href="mailto:matt.e.greer@gmail.com">matt.e.greer@gmail.com</a></li>
 <li><i class="fa fa-twitter"></i> <a href="http://twitter.com/cityfortyone">@cityfortyone</a></li>
 <li><i class="fa fa-stack-overflow"></i> <a href="http://stackoverflow.com/users/194940/matt-greer">StackOverflow</a></li>
